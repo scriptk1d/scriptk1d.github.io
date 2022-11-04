@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="其实只要接触过 Linux 内核源码的人都应该见过 current 这个宏，使用它获取当前进程的 task_struct 结构（当然这个不是绝对的） 现在就来看看 current 真正的样子 12345678910111213141516&#x2F;* SPDX-License-Identifier: GPL-2.0 *&#x2F;#ifndef _ASM_X86_CURRENT_H#define _ASM_X86_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux kernel -- current 宏">
+<meta property="og:url" content="https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/index.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="其实只要接触过 Linux 内核源码的人都应该见过 current 这个宏，使用它获取当前进程的 task_struct 结构（当然这个不是绝对的） 现在就来看看 current 真正的样子 12345678910111213141516&#x2F;* SPDX-License-Identifier: GPL-2.0 *&#x2F;#ifndef _ASM_X86_CURRENT_H#define _ASM_X86_">
+<meta property="og:locale">
+<meta property="og:image" content="https://gitee.com/scriptkiddies/images/raw/master/image-20201203181407718.png">
+<meta property="og:image" content="https://gitee.com/scriptkiddies/images/raw/master/image-20201203182132339.png">
+<meta property="article:published_time" content="2022-11-04T06:39:29.000Z">
+<meta property="article:modified_time" content="2022-11-04T06:41:38.004Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/scriptkiddies/images/raw/master/image-20201203181407718.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Linux kernel -- current 宏</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&text=Linux kernel -- current 宏"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&is_video=false&description=Linux kernel -- current 宏"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Linux kernel -- current 宏&body=Check out this article: https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&name=Linux kernel -- current 宏&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&t=Linux kernel -- current 宏"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Linux kernel -- current 宏
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-11-04T06:39:29.000Z" itemprop="datePublished">2022-11-04</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <p>其实只要接触过 Linux 内核源码的人都应该见过 <code>current</code> 这个宏，使用它获取当前进程的 <code>task_struct</code> 结构（当然这个不是绝对的）</p>
+<p>现在就来看看 <code>current</code> 真正的样子</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* SPDX-License-Identifier: GPL-2.0 */</span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> _ASM_X86_CURRENT_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _ASM_X86_CURRENT_H</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;linux/compiler.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;asm/percpu.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">ifndef</span> __ASSEMBLY__</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">task_struct</span>;</span></span><br><span class="line">DECLARE_PER_CPU(<span class="keyword">struct</span> task_struct *, current_task);</span><br><span class="line"><span class="type">static</span> __always_inline <span class="keyword">struct</span> task_struct *<span class="title function_">get_current</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> this_cpu_read_stable(current_task);</span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> current get_current()</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* __ASSEMBLY__ */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* _ASM_X86_CURRENT_H */</span></span></span><br></pre></td></tr></table></figure>
+
+<p> <code>DECLARE_PER_CPU(struct task_struct *, current_task);</code>  表示在 <code>.data..percpu</code> 数据段声明一个 名为：<code>current_task</code> 的 <code>struct task_struct *</code></p>
+<p>可以看到 <code>current</code> 是个宏，真正调用的是 get_current 函数 可以看到返回值是一个 task_struct *，总是 内联 ，也就是说正常编译出来不会有函数体</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> __always_inline <span class="keyword">struct</span> task_struct *<span class="title function_">get_current</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> this_cpu_read_stable(current_task);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后 get_current 函数调用 this_cpu_read_stable</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> this_cpu_read_stable(var)	percpu_stable_op(<span class="string">&quot;mov&quot;</span>, var)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> percpu_stable_op(op, var)			\</span></span><br><span class="line"><span class="meta">(&#123;							\</span></span><br><span class="line"><span class="meta">	typeof(var) pfo_ret__;				\</span></span><br><span class="line"><span class="meta">	switch (sizeof(var)) &#123;				\</span></span><br><span class="line"><span class="meta">	case 1:						\</span></span><br><span class="line"><span class="meta">		asm(op <span class="string">&quot;b &quot;</span>__percpu_arg(P1)<span class="string">&quot;,%0&quot;</span>	\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;=q&quot;</span> (pfo_ret__)			\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;p&quot;</span> (&amp;(var)));			\</span></span><br><span class="line"><span class="meta">		break;					\</span></span><br><span class="line"><span class="meta">	case 2:						\</span></span><br><span class="line"><span class="meta">		asm(op <span class="string">&quot;w &quot;</span>__percpu_arg(P1)<span class="string">&quot;,%0&quot;</span>	\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;=r&quot;</span> (pfo_ret__)			\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;p&quot;</span> (&amp;(var)));			\</span></span><br><span class="line"><span class="meta">		break;					\</span></span><br><span class="line"><span class="meta">	case 4:						\</span></span><br><span class="line"><span class="meta">		asm(op <span class="string">&quot;l &quot;</span>__percpu_arg(P1)<span class="string">&quot;,%0&quot;</span>	\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;=r&quot;</span> (pfo_ret__)			\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;p&quot;</span> (&amp;(var)));			\</span></span><br><span class="line"><span class="meta">		break;					\</span></span><br><span class="line"><span class="meta">	case 8:						\</span></span><br><span class="line"><span class="meta">		asm(op <span class="string">&quot;q &quot;</span>__percpu_arg(P1)<span class="string">&quot;,%0&quot;</span>	\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;=r&quot;</span> (pfo_ret__)			\</span></span><br><span class="line"><span class="meta">		    : <span class="string">&quot;p&quot;</span> (&amp;(var)));			\</span></span><br><span class="line"><span class="meta">		break;					\</span></span><br><span class="line"><span class="meta">	default: __bad_percpu_size();			\</span></span><br><span class="line"><span class="meta">	&#125;						\</span></span><br><span class="line"><span class="meta">	pfo_ret__;					\</span></span><br><span class="line"><span class="meta">&#125;)</span></span><br></pre></td></tr></table></figure>
+
+<p>在 x86-64 体系下，所以 <code>sizeof(current_task)</code> 的值为 <code> 8</code></p>
+<p>对应的是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">asm</span>(op <span class="string">&quot;q &quot;</span>__percpu_arg(P1)<span class="string">&quot;,%0&quot;</span>	\</span><br><span class="line">    : <span class="string">&quot;=r&quot;</span> (pfo_ret__)			\</span><br><span class="line">    : <span class="string">&quot;p&quot;</span> (&amp;(var)));			\</span><br></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_arg(x)		__percpu_prefix <span class="string">&quot;%&quot;</span> #x</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_prefix		<span class="string">&quot;%%&quot;</span>__stringify(__percpu_seg)<span class="string">&quot;:&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __stringify_1(x)	#x</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __stringify(x)		__stringify_1(x)</span></span><br></pre></td></tr></table></figure>
+
+<p>linux 最喜欢的 “万层” define 嵌套</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> CONFIG_X86_64</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_seg		gs</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_mov_op		movq</span></span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_seg		fs</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __percpu_mov_op		movl</span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br></pre></td></tr></table></figure>
+
+<p>这里就是终点了</p>
+<p>在 X86_64 体系下面是 <code>gs</code>  ; mov 操作指令是 <code>movq</code></p>
+<p>否则的话 就是  <code>fs</code>  ; mov 操作指令是 <code>movl</code></p>
+<p>现在看来就是一直在拼接字符，宏展开就是一句汇编，完整的代码是：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">asm</span>(movq <span class="string">&quot;%%gs:%P1&quot;</span>,<span class="string">&quot;%0&quot;</span> : <span class="string">&quot;=r&quot;</span> (var) :<span class="string">&quot;p&quot;</span> (&amp;(var)) </span><br></pre></td></tr></table></figure>
+
+<p>编译完后得到的会是像这样的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov    rdi, QWORD PTR gs:0xXXXXXXXX</span><br></pre></td></tr></table></figure>
+
+<p>写个 demo 去动态调试，我选的是 <code>getpid</code></p>
+<p>code:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span> &#123;</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;I am init\n&quot;</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;my pid: %d&quot;</span>, getpid());</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在内核里 getpid 会在调用 __task_pid_nr_ns 前，获取 current task 的 task_struct 的地址作为参数（第一个，放入 rdi）</p>
+<p>源码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">SYSCALL_DEFINE0(getpid)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> task_tgid_vnr(current);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">static</span> <span class="keyword">inline</span> <span class="type">pid_t</span> <span class="title function_">task_tgid_vnr</span><span class="params">(<span class="keyword">struct</span> task_struct *tsk)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span> __task_pid_nr_ns(tsk, PIDTYPE_TGID, <span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br><span class="line"><span class="type">pid_t</span> __task_pid_nr_ns(<span class="keyword">struct</span> task_struct *task, <span class="keyword">enum</span> pid_type type,</span><br><span class="line">			<span class="keyword">struct</span> pid_namespace *ns)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="type">pid_t</span> nr = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	rcu_read_lock();</span><br><span class="line">	<span class="keyword">if</span> (!ns)</span><br><span class="line">		ns = task_active_pid_ns(current);</span><br><span class="line">	nr = pid_nr_ns(rcu_dereference(*task_pid_ptr(task, type)), ns);</span><br><span class="line">	rcu_read_unlock();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> nr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>静态编译，打包成 initrd</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">➜  cat init.c</span><br><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &lt;unistd.h&gt;</span><br><span class="line"></span><br><span class="line">int main() &#123;</span><br><span class="line">	printf(&quot;I am init\n&quot;);</span><br><span class="line">	printf(&quot;my pid: %d\n&quot;, getpid());</span><br><span class="line">	return 0;</span><br><span class="line">&#125;</span><br><span class="line">➜  gcc -static init.c -o init</span><br><span class="line">➜  ls init | cpio -o --format=newc &gt; init.img</span><br><span class="line">1652 blocks</span><br></pre></td></tr></table></figure>
+
+<p>调试</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-x86_64 -kernel arch/x86_64/boot/bzImage -append &quot;nokaslr&quot; -initrd init.img  -S -s</span><br></pre></td></tr></table></figure>
+
+
+
+<p>直接在 do_syscall_64 下硬件断点，这是 x86-64 系统调用进入内核的必经之路</p>
+<p>getpid 的系统调用号是，39</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜  ~ <span class="built_in">cat</span> /usr/include/asm/unistd_64.h| grep getpid</span><br><span class="line"><span class="comment">#define __NR_getpid 39</span></span><br></pre></td></tr></table></figure>
+
+<p>就一直 c 到 do_syscall_64 的参数 nr 为 39（0x27）停下</p>
+<p><img src="https://gitee.com/scriptkiddies/images/raw/master/image-20201203181407718.png" alt="image-20201203181407718"></p>
+<p>看到：<code>do_syscall_64 (nr=0x27, regs=0xffffc90000013f58)</code></p>
+<p>在 <code>task_tgid_vnr</code> 下断点（其实不用在系统调用那里下断点，直接在 task_tgid_vnr 下断点也是一样可以断下来的）然后 c</p>
+<p><img src="https://gitee.com/scriptkiddies/images/raw/master/image-20201203182132339.png" alt="image-20201203182132339"></p>
+<p>可以看到上面那两句汇编</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0xffffffff81079f97 &lt;__x64_sys_getpid+7&gt; mov    rdi, QWORD PTR gs:0x17d00</span><br><span class="line">0xffffffff81079fa0 &lt;__x64_sys_getpid+16&gt; call   0xffffffff810865f0 &lt;__task_pid_nr_ns&gt;</span><br></pre></td></tr></table></figure>
+
+<p>从 <code>gs:0x17d00</code> 处取一个 QWORD 大小的数据，放入 rdi，再调用 <code>__task_pid_nr_ns</code>，根据 x86-64 的函数调用约定，rdi 存的就是调用函数的第一个参数</p>
+<p>__task_pid_nr_ns 的源码上面已经贴出来过了，函数原型</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">pid_t</span> __task_pid_nr_ns(<span class="keyword">struct</span> task_struct *task, <span class="keyword">enum</span> pid_type type,</span><br><span class="line">			<span class="keyword">struct</span> pid_namespace *ns)</span><br></pre></td></tr></table></figure>
+
+<p>传入的就是 current 的 task_struct 的地址（仔细看上面给出的代码）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gef➤  p $gs</span><br><span class="line">$1 = 0x0</span><br></pre></td></tr></table></figure>
+
+<p>gs 寄存器的值是 0，看看 vmlinux， VMA 为 0 是哪个 section 的地址起始地址，其实就是 <code>.data..percpu</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line">➜  linux-5.6 objdump -h vmlinux                     </span><br><span class="line"></span><br><span class="line">vmlinux:     file format elf64-x86-64</span><br><span class="line"></span><br><span class="line">Sections:</span><br><span class="line">Idx Name          Size      VMA               LMA               File off  Algn</span><br><span class="line">  0 .text         00e011c1  ffffffff81000000  0000000001000000  00200000  2**12</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE</span><br><span class="line">  1 .rodata       002dd0f0  ffffffff82000000  0000000002000000  01200000  2**12</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line">  2 .pci_fixup    00003000  ffffffff822dd0f0  00000000022dd0f0  014dd0f0  2**4</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  3 .tracedata    00000078  ffffffff822e00f0  00000000022e00f0  014e00f0  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  4 __ksymtab     000115b0  ffffffff822e0168  00000000022e0168  014e0168  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  5 __ksymtab_gpl 0000e3dc  ffffffff822f1718  00000000022f1718  014f1718  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  6 __ksymtab_strings 00032d09  ffffffff822ffaf4  00000000022ffaf4  014ffaf4  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, READONLY, DATA</span><br><span class="line">  7 __param       00004b00  ffffffff82332800  0000000002332800  01532800  2**3</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  8 __modver      00000080  ffffffff82337300  0000000002337300  01537300  2**3</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line">  9 __ex_table    00003588  ffffffff82337380  0000000002337380  01537380  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 10 .notes        0000003c  ffffffff8233a908  000000000233a908  0153a908  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, READONLY, DATA</span><br><span class="line"> 11 .data         0017c480  ffffffff82400000  0000000002400000  01600000  2**13</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line"> 12 __bug_table   000184d4  ffffffff8257c480  000000000257c480  0177c480  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line"> 13 .orc_unwind_ip 00190124  ffffffff82594954  0000000002594954  01794954  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 14 .orc_unwind   002581b6  ffffffff82724a78  0000000002724a78  01924a78  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, READONLY, DATA</span><br><span class="line"> 15 .orc_lookup   0003804c  ffffffff8297cc30  000000000297cc30  01b7cc2e  2**0</span><br><span class="line">                  ALLOC</span><br><span class="line"> 16 .vvar         00001000  ffffffff829b5000  00000000029b5000  01bb5000  2**4</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, DATA</span><br><span class="line"> 17 .data..percpu 0002b158  0000000000000000  00000000029b6000  01c00000  2**12</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line"> 18 .init.text    00050049  ffffffff829e2000  00000000029e2000  01de2000  2**4</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE</span><br><span class="line"> 19 .altinstr_aux 0000234b  ffffffff82a32049  0000000002a32049  01e32049  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE</span><br><span class="line"> 20 .init.data    0009a410  ffffffff82a36000  0000000002a36000  01e36000  2**13</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line"> 21 .x86_cpu_dev.init 00000028  ffffffff82ad0410  0000000002ad0410  01ed0410  2**3</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 22 .altinstructions 000076ba  ffffffff82ad0438  0000000002ad0438  01ed0438  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 23 .altinstr_replacement 00001dba  ffffffff82ad7af2  0000000002ad7af2  01ed7af2  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE</span><br><span class="line"> 24 .iommu_table  000000a0  ffffffff82ad98b0  0000000002ad98b0  01ed98b0  2**3</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 25 .apicdrivers  00000010  ffffffff82ad9950  0000000002ad9950  01ed9950  2**3</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, DATA</span><br><span class="line"> 26 .exit.text    00001ba3  ffffffff82ad9960  0000000002ad9960  01ed9960  2**0</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, CODE</span><br><span class="line"> 27 .smp_locks    0000a000  ffffffff82adc000  0000000002adc000  01edc000  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, RELOC, READONLY, DATA</span><br><span class="line"> 28 .data_nosave  00001000  ffffffff82ae6000  0000000002ae6000  01ee6000  2**2</span><br><span class="line">                  CONTENTS, ALLOC, LOAD, DATA</span><br><span class="line"> 29 .bss          00119000  ffffffff82ae7000  0000000002ae7000  01ee7000  2**12</span><br><span class="line">                  ALLOC</span><br><span class="line"> 30 .brk          0002c000  ffffffff82c00000  0000000002c00000  01ee7000  2**0</span><br><span class="line">                  ALLOC</span><br><span class="line"> 31 .comment      00000020  0000000000000000  0000000000000000  01ee7000  2**0</span><br><span class="line">                  CONTENTS, READONLY</span><br><span class="line"> 32 .debug_aranges 00029ee0  0000000000000000  0000000000000000  01ee7020  2**4</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line"> 33 .debug_info   0ea570ad  0000000000000000  0000000000000000  01f10f00  2**0</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line"> 34 .debug_abbrev 0065b7fb  0000000000000000  0000000000000000  10967fad  2**0</span><br><span class="line">                  CONTENTS, READONLY, DEBUGGING</span><br><span class="line"> 35 .debug_line   017c0bb1  0000000000000000  0000000000000000  10fc37a8  2**0</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line"> 36 .debug_frame  002bc680  0000000000000000  0000000000000000  12784360  2**3</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line"> 37 .debug_str    003f1b41  0000000000000000  0000000000000000  12a409e0  2**0</span><br><span class="line">                  CONTENTS, READONLY, DEBUGGING</span><br><span class="line"> 38 .debug_loc    00f17248  0000000000000000  0000000000000000  12e32521  2**0</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line"> 39 .debug_ranges 00fd4bd0  0000000000000000  0000000000000000  13d49770  2**4</span><br><span class="line">                  CONTENTS, RELOC, READONLY, DEBUGGING</span><br><span class="line">                  </span><br><span class="line"> ➜  linux-5.6 objdump -h vmlinux | grep .data..percpu</span><br><span class="line"> 17 .data..percpu 0002b158  0000000000000000  00000000029b6000  01c00000  2**12</span><br></pre></td></tr></table></figure>
+
+<p>可以<code>.data..percpu</code> 的 <code>VMA</code> 为 <code>0</code> 大小为 <code>0x2b158</code></p>
+<p>其实当前进程的 <code>task_struct</code> 的地址会存在 <code>.data..percpu</code>，名为 <code>current_task</code></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DECLARE_PER_CPU(<span class="keyword">struct</span> task_struct *, current_task);</span><br></pre></td></tr></table></figure>
+
+<p>详细看：<a target="_blank" rel="noopener" href="http://linux.laoqinren.net/kernel/percpu-var/">http://linux.laoqinren.net/kernel/percpu-var/</a></p>
+<p>其实就能知道了 <code>gs</code> 就是指向的 <code>.data..percpu</code> 的起始地址（虚拟地址 VMA），而<code>.data..percpu</code> 的起始地址（虚拟地址 VMA）为 0，<code>current_task</code> 在 <code>.data..percpu</code> 的偏移量为 <code>0x17d00</code></p>
+<p>看内核导出的符号</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜  linux-5.6 nm vmlinux | grep current_task</span><br><span class="line">0000000000017d00 D current_task</span><br></pre></td></tr></table></figure>
+
+<p><code>D</code> 表示 该符号是个全局变量，放在某个数据段中</p>
+<p>man: <a target="_blank" rel="noopener" href="https://www.man7.org/linux/man-pages/man1/nm.1p.html">https://www.man7.org/linux/man-pages/man1/nm.1p.html</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gef➤  p &amp;current_task</span><br><span class="line">$2 = (struct task_struct **) 0x17d00 &lt;current_task&gt;</span><br></pre></td></tr></table></figure>
+
+<p>看到 current_task 的地址就是 <code>0x17d00</code>，解引用就能得到当前进程的 <code>task_struct</code> 的地址（当然 gdb 不能访问这个地址的内容）</p>
+<p>完！</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/about/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&text=Linux kernel -- current 宏"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&is_video=false&description=Linux kernel -- current 宏"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Linux kernel -- current 宏&body=Check out this article: https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&title=Linux kernel -- current 宏"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&name=Linux kernel -- current 宏&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/2022/11/04/Linux-kernel-current-%E5%AE%8F/&t=Linux kernel -- current 宏"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2022
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+  <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?6bb87dafe073a4e46a6fce474cc0470f";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
