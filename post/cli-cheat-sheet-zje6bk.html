@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="cli cheat sheetLinux 查看程序依赖library dynamic dependency。用于输出可执行程序或共享库依赖的共享库列表 有 ldd 的情况下 1ldd xxx  ​​ 没有ldd的话，可以通过使用 LD_TRACE_LOADED_OBJECTS 环境变量实现 ldd 的实现其实也是通过设置环境变量来实现输出依赖的功能。当环境变量LD_TRACE_LOADED_OBJ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="cli cheat sheet">
+<meta property="og:url" content="https://syscall.fun/post/cli-cheat-sheet-zje6bk.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="cli cheat sheetLinux 查看程序依赖library dynamic dependency。用于输出可执行程序或共享库依赖的共享库列表 有 ldd 的情况下 1ldd xxx  ​​ 没有ldd的话，可以通过使用 LD_TRACE_LOADED_OBJECTS 环境变量实现 ldd 的实现其实也是通过设置环境变量来实现输出依赖的功能。当环境变量LD_TRACE_LOADED_OBJ">
+<meta property="og:locale">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202310292219798.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202310292219678.png">
+<meta property="article:published_time" content="2023-10-29T11:17:10.000Z">
+<meta property="article:modified_time" content="2023-10-29T15:44:53.000Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202310292219798.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>cli cheat sheet</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/2022/11/04/Heap-Based-Buffer-Overflow-in-Sudo-Baron-Samedit-%E5%88%86%E6%9E%90-POC-%E9%AA%8C%E8%AF%81%E7%AF%87/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&text=cli cheat sheet"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&is_video=false&description=cli cheat sheet"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=cli cheat sheet&body=Check out this article: https://syscall.fun/post/cli-cheat-sheet-zje6bk.html"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&name=cli cheat sheet&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&t=cli cheat sheet"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#cli-cheat-sheet"><span class="toc-number">1.</span> <span class="toc-text">cli cheat sheet</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-%E6%9F%A5%E7%9C%8B%E7%A8%8B%E5%BA%8F%E4%BE%9D%E8%B5%96"><span class="toc-number">1.1.</span> <span class="toc-text">Linux 查看程序依赖</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        cli cheat sheet
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-10-29T11:17:10.000Z" class="dt-published" itemprop="datePublished">2023-10-29</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="cli-cheat-sheet"><a href="#cli-cheat-sheet" class="headerlink" title="cli cheat sheet"></a>cli cheat sheet</h1><h2 id="Linux-查看程序依赖"><a href="#Linux-查看程序依赖" class="headerlink" title="Linux 查看程序依赖"></a>Linux 查看程序依赖</h2><p><strong>l</strong>ibrary <strong>d</strong>ynamic <strong>d</strong>ependency。用于输出<strong>可执行程序</strong>或<strong>共享库</strong>依赖的共享库列表</p>
+<p>有 ldd 的情况下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldd xxx</span><br></pre></td></tr></table></figure>
+
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202310292219798.png" alt="image">​</p>
+<p>没有ldd的话，可以通过使用 LD_TRACE_LOADED_OBJECTS 环境变量实现</p>
+<p>ldd 的实现其实也是通过设置环境变量来实现输出依赖的功能。当环境变量<code>LD_TRACE_LOADED_OBJECTS</code>​的值不为空时，可执行程序在被执行的时候，只会显示该程序的依赖而不会真正的被执行。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> LD_TRACE_LOADED_OBJECTS=1</span><br><span class="line">/bin/bash</span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">LD_TRACE_LOADED_OBJECTS=1 /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202310292219678.png" alt="image">​</p>
+<p>GNU实现ldd的方法</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># Copyright (C) 1996-2023 Free Software Foundation, Inc.</span></span><br><span class="line"><span class="comment"># This file is part of the GNU C Library.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The GNU C Library is free software; you can redistribute it and/or</span></span><br><span class="line"><span class="comment"># modify it under the terms of the GNU Lesser General Public</span></span><br><span class="line"><span class="comment"># License as published by the Free Software Foundation; either</span></span><br><span class="line"><span class="comment"># version 2.1 of the License, or (at your option) any later version.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The GNU C Library is distributed in the hope that it will be useful,</span></span><br><span class="line"><span class="comment"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span></span><br><span class="line"><span class="comment"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span></span><br><span class="line"><span class="comment"># Lesser General Public License for more details.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># You should have received a copy of the GNU Lesser General Public</span></span><br><span class="line"><span class="comment"># License along with the GNU C Library; if not, see</span></span><br><span class="line"><span class="comment"># &lt;https://www.gnu.org/licenses/&gt;.</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment"># This is the `ldd&#x27; command, which lists what shared libraries are</span></span><br><span class="line"><span class="comment"># used by given dynamically-linked executables.  It works by invoking the</span></span><br><span class="line"><span class="comment"># run-time dynamic linker as a command and setting the environment</span></span><br><span class="line"><span class="comment"># variable LD_TRACE_LOADED_OBJECTS to a non-empty value.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># We should be able to find the translation right at the beginning.</span></span><br><span class="line">TEXTDOMAIN=libc</span><br><span class="line">TEXTDOMAINDIR=/usr/share/locale</span><br><span class="line"></span><br><span class="line">RTLDLIST=<span class="string">&quot;/usr/lib/ld-linux.so.2 /usr/lib64/ld-linux-x86-64.so.2 /usr/libx32/ld-linux-x32.so.2&quot;</span></span><br><span class="line">warn=</span><br><span class="line">bind_now=</span><br><span class="line">verbose=</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> <span class="built_in">test</span> <span class="variable">$#</span> -gt 0; <span class="keyword">do</span></span><br><span class="line">  <span class="keyword">case</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span> <span class="keyword">in</span></span><br><span class="line">  --vers | --versi | --versio | --version)</span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&#x27;ldd (GNU libc) 2.38&#x27;</span></span><br><span class="line">    <span class="built_in">printf</span> $<span class="string">&quot;Copyright (C) %s Free Software Foundation, Inc.</span></span><br><span class="line"><span class="string">This is free software; see the source for copying conditions.  There is NO</span></span><br><span class="line"><span class="string">warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</span></span><br><span class="line"><span class="string">&quot;</span> <span class="string">&quot;2023&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> $<span class="string">&quot;Written by %s and %s.</span></span><br><span class="line"><span class="string">&quot;</span> <span class="string">&quot;Roland McGrath&quot;</span> <span class="string">&quot;Ulrich Drepper&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 0</span><br><span class="line">    ;;</span><br><span class="line">  --h | --he | --hel | --<span class="built_in">help</span>)</span><br><span class="line">    <span class="built_in">echo</span> $<span class="string">&quot;Usage: ldd [OPTION]... FILE...</span></span><br><span class="line"><span class="string">      --help              print this help and exit</span></span><br><span class="line"><span class="string">      --version           print version information and exit</span></span><br><span class="line"><span class="string">  -d, --data-relocs       process data relocations</span></span><br><span class="line"><span class="string">  -r, --function-relocs   process data and function relocations</span></span><br><span class="line"><span class="string">  -u, --unused            print unused direct dependencies</span></span><br><span class="line"><span class="string">  -v, --verbose           print all information</span></span><br><span class="line"><span class="string">&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> $<span class="string">&quot;For bug reporting instructions, please see:\\n%s.\\n&quot;</span> \</span><br><span class="line">      <span class="string">&quot;&lt;https://bugs.archlinux.org/&gt;&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 0</span><br><span class="line">    ;;</span><br><span class="line">  -d | --d | --da | --dat | --data | --data- | --data-r | --data-re | \</span><br><span class="line">  --data-rel | --data-relo | --data-reloc | --data-relocs)</span><br><span class="line">    warn=<span class="built_in">yes</span></span><br><span class="line">    <span class="built_in">shift</span></span><br><span class="line">    ;;</span><br><span class="line">  -r | --f | --fu | --fun | --func | --funct | --functi | --functio | \</span><br><span class="line">  --<span class="keyword">function</span> | --<span class="keyword">function</span>- | --function-r | --function-re | --function-rel | \</span><br><span class="line">  --function-relo | --function-reloc | --function-relocs)</span><br><span class="line">    warn=<span class="built_in">yes</span></span><br><span class="line">    bind_now=<span class="built_in">yes</span></span><br><span class="line">    <span class="built_in">shift</span></span><br><span class="line">    ;;</span><br><span class="line">  -v | --verb | --verbo | --verbos | --verbose)</span><br><span class="line">    verbose=<span class="built_in">yes</span></span><br><span class="line">    <span class="built_in">shift</span></span><br><span class="line">    ;;</span><br><span class="line">  -u | --u | --un | --unu | --unus | --unuse | --unused)</span><br><span class="line">    unused=<span class="built_in">yes</span></span><br><span class="line">    <span class="built_in">shift</span></span><br><span class="line">    ;;</span><br><span class="line">  --v | --ve | --ver)</span><br><span class="line">    <span class="built_in">echo</span> &gt;&amp;2 $<span class="string">&quot;ldd: option \`<span class="variable">$1</span>&#x27; is ambiguous&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line">    ;;</span><br><span class="line">  --)		<span class="comment"># Stop option processing.</span></span><br><span class="line">    <span class="built_in">shift</span>; <span class="built_in">break</span></span><br><span class="line">    ;;</span><br><span class="line">  -*)</span><br><span class="line">    <span class="built_in">echo</span> &gt;&amp;2 <span class="string">&#x27;ldd:&#x27;</span> $<span class="string">&quot;unrecognized option&quot;</span> <span class="string">&quot;\`<span class="variable">$1</span>&#x27;&quot;</span></span><br><span class="line">    <span class="built_in">echo</span> &gt;&amp;2 $<span class="string">&quot;Try \`ldd --help&#x27; for more information.&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line">    ;;</span><br><span class="line">  *)</span><br><span class="line">    <span class="built_in">break</span></span><br><span class="line">    ;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">nonelf</span></span> ()</span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment"># Maybe extra code for non-ELF binaries.</span></span><br><span class="line">  <span class="built_in">return</span> 1;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">add_env=<span class="string">&quot;LD_TRACE_LOADED_OBJECTS=1 LD_WARN=<span class="variable">$warn</span> LD_BIND_NOW=<span class="variable">$bind_now</span>&quot;</span></span><br><span class="line">add_env=<span class="string">&quot;<span class="variable">$add_env</span> LD_VERBOSE=<span class="variable">$verbose</span>&quot;</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> <span class="string">&quot;<span class="variable">$unused</span>&quot;</span> = <span class="built_in">yes</span>; <span class="keyword">then</span></span><br><span class="line">  add_env=<span class="string">&quot;<span class="variable">$add_env</span> LD_DEBUG=\&quot;$LD_DEBUG<span class="variable">$&#123;LD_DEBUG:+,&#125;</span>unused\&quot;&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># The following command substitution is needed to make ldd work in SELinux</span></span><br><span class="line"><span class="comment"># environments where the RTLD might not have permission to write to the</span></span><br><span class="line"><span class="comment"># terminal.  The extra &quot;x&quot; character prevents the shell from trimming trailing</span></span><br><span class="line"><span class="comment"># newlines from command substitution results.  This function is defined as a</span></span><br><span class="line"><span class="comment"># subshell compound list (using &quot;(...)&quot;) to prevent parameter assignments from</span></span><br><span class="line"><span class="comment"># affecting the calling shell execution environment.</span></span><br><span class="line">try_trace() (</span><br><span class="line">  output=$(<span class="built_in">eval</span> <span class="variable">$add_env</span> <span class="string">&#x27;&quot;$@&quot;&#x27;</span> 2&gt;&amp;1; rc=$?; <span class="built_in">printf</span> <span class="string">&#x27;x&#x27;</span>; <span class="built_in">exit</span> <span class="variable">$rc</span>)</span><br><span class="line">  rc=$?</span><br><span class="line">  <span class="built_in">printf</span> <span class="string">&#x27;%s&#x27;</span> <span class="string">&quot;<span class="variable">$&#123;output%x&#125;</span>&quot;</span></span><br><span class="line">  <span class="built_in">return</span> <span class="variable">$rc</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">case</span> <span class="variable">$#</span> <span class="keyword">in</span></span><br><span class="line">0)</span><br><span class="line">  <span class="built_in">echo</span> &gt;&amp;2 <span class="string">&#x27;ldd:&#x27;</span> $<span class="string">&quot;missing file arguments&quot;</span></span><br><span class="line">  <span class="built_in">echo</span> &gt;&amp;2 $<span class="string">&quot;Try \`ldd --help&#x27; for more information.&quot;</span></span><br><span class="line">  <span class="built_in">exit</span> 1</span><br><span class="line">  ;;</span><br><span class="line">1)</span><br><span class="line">  single_file=t</span><br><span class="line">  ;;</span><br><span class="line">*)</span><br><span class="line">  single_file=f</span><br><span class="line">  ;;</span><br><span class="line"><span class="keyword">esac</span></span><br><span class="line"></span><br><span class="line">result=0</span><br><span class="line"><span class="keyword">for</span> file <span class="keyword">do</span></span><br><span class="line">  <span class="comment"># We don&#x27;t list the file name when there is only one.</span></span><br><span class="line">  <span class="built_in">test</span> <span class="variable">$single_file</span> = t || <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$&#123;file&#125;</span>:&quot;</span></span><br><span class="line">  <span class="keyword">case</span> <span class="variable">$file</span> <span class="keyword">in</span></span><br><span class="line">  */*) :</span><br><span class="line">       ;;</span><br><span class="line">  *) file=./<span class="variable">$file</span></span><br><span class="line">     ;;</span><br><span class="line">  <span class="keyword">esac</span></span><br><span class="line">  <span class="keyword">if</span> <span class="built_in">test</span> ! -e <span class="string">&quot;<span class="variable">$file</span>&quot;</span>; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;ldd: <span class="variable">$&#123;file&#125;</span>:&quot;</span> $<span class="string">&quot;No such file or directory&quot;</span> &gt;&amp;2</span><br><span class="line">    result=1</span><br><span class="line">  <span class="keyword">elif</span> <span class="built_in">test</span> ! -f <span class="string">&quot;<span class="variable">$file</span>&quot;</span>; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;ldd: <span class="variable">$&#123;file&#125;</span>:&quot;</span> $<span class="string">&quot;not regular file&quot;</span> &gt;&amp;2</span><br><span class="line">    result=1</span><br><span class="line">  <span class="keyword">elif</span> <span class="built_in">test</span> -r <span class="string">&quot;<span class="variable">$file</span>&quot;</span>; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">test</span> -x <span class="string">&quot;<span class="variable">$file</span>&quot;</span> || <span class="built_in">echo</span> <span class="string">&#x27;ldd:&#x27;</span> $<span class="string">&quot;\</span></span><br><span class="line"><span class="string">warning: you do not have execution permission for&quot;</span> <span class="string">&quot;\`<span class="variable">$file</span>&#x27;&quot;</span> &gt;&amp;2</span><br><span class="line">    RTLD=</span><br><span class="line">    ret=1</span><br><span class="line">    <span class="keyword">for</span> rtld <span class="keyword">in</span> <span class="variable">$&#123;RTLDLIST&#125;</span>; <span class="keyword">do</span></span><br><span class="line">      <span class="keyword">if</span> <span class="built_in">test</span> -x <span class="variable">$rtld</span>; <span class="keyword">then</span></span><br><span class="line">	verify_out=`<span class="variable">$&#123;rtld&#125;</span> --verify <span class="string">&quot;<span class="variable">$file</span>&quot;</span>`</span><br><span class="line">	ret=$?</span><br><span class="line">	<span class="keyword">case</span> <span class="variable">$ret</span> <span class="keyword">in</span></span><br><span class="line">	[02]) RTLD=<span class="variable">$&#123;rtld&#125;</span>; <span class="built_in">break</span>;;</span><br><span class="line">	<span class="keyword">esac</span></span><br><span class="line">      <span class="keyword">fi</span></span><br><span class="line">    <span class="keyword">done</span></span><br><span class="line">    <span class="keyword">case</span> <span class="variable">$ret</span> <span class="keyword">in</span></span><br><span class="line">    1)</span><br><span class="line">      <span class="comment"># This can be a non-ELF binary or no binary at all.</span></span><br><span class="line">      nonelf <span class="string">&quot;<span class="variable">$file</span>&quot;</span> || &#123;</span><br><span class="line">	<span class="built_in">echo</span> $<span class="string">&quot;	not a dynamic executable&quot;</span> &gt;&amp;2</span><br><span class="line">	result=1</span><br><span class="line">      &#125;</span><br><span class="line">      ;;</span><br><span class="line">    0|2)</span><br><span class="line">      try_trace <span class="string">&quot;<span class="variable">$RTLD</span>&quot;</span> <span class="string">&quot;<span class="variable">$file</span>&quot;</span> || result=1</span><br><span class="line">      ;;</span><br><span class="line">    *)</span><br><span class="line">      <span class="built_in">echo</span> <span class="string">&#x27;ldd:&#x27;</span> <span class="variable">$&#123;RTLD&#125;</span> $<span class="string">&quot;exited with unknown exit code&quot;</span> <span class="string">&quot;(<span class="variable">$ret</span>)&quot;</span> &gt;&amp;2</span><br><span class="line">      <span class="built_in">exit</span> 1</span><br><span class="line">      ;;</span><br><span class="line">    <span class="keyword">esac</span></span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&#x27;ldd:&#x27;</span> $<span class="string">&quot;error: you do not have read permission for&quot;</span> <span class="string">&quot;\`<span class="variable">$file</span>&#x27;&quot;</span> &gt;&amp;2</span><br><span class="line">    result=1</span><br><span class="line">  <span class="keyword">fi</span></span><br><span class="line"><span class="keyword">done</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">exit</span> <span class="variable">$result</span></span><br><span class="line"><span class="comment"># Local Variables:</span></span><br><span class="line"><span class="comment">#  mode:ksh</span></span><br><span class="line"><span class="comment"># End:</span></span><br></pre></td></tr></table></figure>
+
+<p>移植ldd的话就很简单了，修改变量<code>RTLDLIST</code>​值。将其修改为目标系统下的链接动态库(ld-linux-xx.so)，多数位于<code>/lib</code>​目录下</p>
+<p>‍</p>
+<p>相应的，如果需要拷贝一个动态链接的Linux程序的依赖的话可以结合 awk 来实现</p>
+<p>保存为：export_dep.sh</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> ! -e <span class="string">&quot;<span class="variable">$1</span>&quot;</span>; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$&#123;1&#125;</span>:&quot;</span> $<span class="string">&quot;No such file or directory&quot;</span> &gt;&amp;2</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line">result=`LD_TRACE_LOADED_OBJECTS=1 <span class="variable">$1</span>`</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> [[ <span class="string">&quot;<span class="variable">$result</span>&quot;</span> != *<span class="string">&quot;.so&quot;</span>* ]]</span><br><span class="line"><span class="keyword">then</span></span><br><span class="line">	<span class="built_in">echo</span> <span class="string">&quot;[*] <span class="variable">$&#123;result&#125;</span>&quot;</span></span><br><span class="line">	<span class="built_in">echo</span> <span class="string">&quot;[-] <span class="variable">$&#123;1&#125;</span> not a dynamic link program or LD_TRACE_LOADED_OBJECTS not valid on this system&quot;</span></span><br><span class="line">	<span class="built_in">exit</span> -1</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> itm <span class="keyword">in</span> `LD_TRACE_LOADED_OBJECTS=1 <span class="variable">$1</span> | awk <span class="string">&#x27;&#123;print $3&#125;&#x27;</span>`</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">    <span class="built_in">echo</span> <span class="variable">$itm</span></span><br><span class="line">    <span class="comment"># do something</span></span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>‍</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">function</span> pidof_func()</span><br><span class="line">	<span class="keyword">if</span> [[ *<span class="string">&quot;command not found&quot;</span>* != <span class="string">&quot;`busybox`&quot;</span> ]]</span><br><span class="line">	<span class="keyword">then</span></span><br><span class="line">		r=`ps | grep <span class="variable">$1</span> | grep -v <span class="string">&quot;grep&quot;</span> | awk <span class="string">&#x27;&#123;print $2&#125;&#x27;</span>`</span><br><span class="line">		<span class="built_in">return</span> r</span><br><span class="line">	<span class="keyword">fi</span></span><br><span class="line">	r=`ps -aux | grep <span class="variable">$1</span> | grep -v <span class="string">&quot;grep&quot;</span> | awk <span class="string">&#x27;&#123;print $2&#125;&#x27;</span>`</span><br><span class="line">	<span class="built_in">return</span> r</span><br><span class="line"></span><br><span class="line"><span class="built_in">cat</span> /proc/<span class="variable">$pid</span>/maps | awk <span class="string">&#x27;&#123;print $6&#125;&#x27;</span> | <span class="built_in">sort</span> | <span class="built_in">uniq</span> | grep <span class="string">&quot;lib&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>‍</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#cli-cheat-sheet"><span class="toc-number">1.</span> <span class="toc-text">cli cheat sheet</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-%E6%9F%A5%E7%9C%8B%E7%A8%8B%E5%BA%8F%E4%BE%9D%E8%B5%96"><span class="toc-number">1.1.</span> <span class="toc-text">Linux 查看程序依赖</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&text=cli cheat sheet"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&is_video=false&description=cli cheat sheet"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=cli cheat sheet&body=Check out this article: https://syscall.fun/post/cli-cheat-sheet-zje6bk.html"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&title=cli cheat sheet"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&name=cli cheat sheet&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/cli-cheat-sheet-zje6bk.html&t=cli cheat sheet"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2023
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
