@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="编译u-boot源码仓库：https:&#x2F;&#x2F;github.com&#x2F;u-boot&#x2F;u-boot ‍ 可以在源码的 configs 目录下面的看到支持的类型 ​​ ‍ 选择合适的架构，比如说，我现在需要用 qemu 来跑一个 aarch64 的内核 适合 qemu 的配置有这些 ​​ ‍ 我们选择 qemu 和 arm64 那就是 qemu_arm64_defconfig，回到 u-boot 源码根目录">
+<meta property="og:type" content="article">
+<meta property="og:title" content="编译u-boot">
+<meta property="og:url" content="https://syscall.fun/post/compile-uboot-1kkkd.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="编译u-boot源码仓库：https:&#x2F;&#x2F;github.com&#x2F;u-boot&#x2F;u-boot ‍ 可以在源码的 configs 目录下面的看到支持的类型 ​​ ‍ 选择合适的架构，比如说，我现在需要用 qemu 来跑一个 aarch64 的内核 适合 qemu 的配置有这些 ​​ ‍ 我们选择 qemu 和 arm64 那就是 qemu_arm64_defconfig，回到 u-boot 源码根目录">
+<meta property="og:locale">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040961.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040282.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040646.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040817.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040861.png">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040063.png">
+<meta property="article:published_time" content="2023-11-06T01:55:06.000Z">
+<meta property="article:modified_time" content="2023-11-06T02:40:46.000Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040961.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>编译u-boot</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/2022/11/04/Heap-Based-Buffer-Overflow-in-Sudo-Baron-Samedit-%E5%88%86%E6%9E%90-POC-%E9%AA%8C%E8%AF%81%E7%AF%87/"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/compile-uboot-1kkkd.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/compile-uboot-1kkkd.html&text=编译u-boot"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/compile-uboot-1kkkd.html&is_video=false&description=编译u-boot"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=编译u-boot&body=Check out this article: https://syscall.fun/post/compile-uboot-1kkkd.html"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/compile-uboot-1kkkd.html&name=编译u-boot&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/compile-uboot-1kkkd.html&t=编译u-boot"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BC%96%E8%AF%91u-boot"><span class="toc-number">1.</span> <span class="toc-text">编译u-boot</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        编译u-boot
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-11-06T01:55:06.000Z" class="dt-published" itemprop="datePublished">2023-11-06</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="编译u-boot"><a href="#编译u-boot" class="headerlink" title="编译u-boot"></a>编译u-boot</h1><p>源码仓库：<a target="_blank" rel="noopener" href="https://github.com/u-boot/u-boot">https://github.com/u-boot/u-boot</a></p>
+<p>‍</p>
+<p>可以在源码的 configs 目录下面的看到支持的类型</p>
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040961.png" alt="image">​</p>
+<p>‍</p>
+<p>选择合适的架构，比如说，我现在需要用 qemu 来跑一个 aarch64 的内核</p>
+<p>适合 qemu 的配置有这些</p>
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040282.png" alt="image">​</p>
+<p>‍</p>
+<p>我们选择 qemu 和 arm64 那就是 qemu_arm64_defconfig，回到 u-boot 源码根目录，执行 <code>make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- qemu_arm64_defconfig</code>​，生成对应的预设设置，根据自己的需求更改 ARCH 和 CROSS_COMPILE 为对应的架构和交叉编译工具链</p>
+<p>​​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040646.png" alt="image">​</p>
+<p>​</p>
+<p>如果需要自定义某些参数的话可以手动编辑 .config 或者 执行 <code>make menuconfig</code>​ 打开可视配置界面</p>
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040817.png" alt="image">​</p>
+<p>配置好了之后直接 <code>make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j4</code>​ 等着编译完就生成了目标 elf 文件</p>
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040861.png" alt="image">​</p>
+<p>用 qemu 启动</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">qemu-system-aarch64 -machine virt -cpu cortex-a57 -kernel u-boot -serial stdio -append <span class="string">&quot;console=ttyAMA0&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202311061040063.png" alt="image">​</p>
+<p>配置好 qemu 的网络就可以通过ftp把内核上传到u-boot启动</p>
+<p>‍</p>
+<p>可以参考我 qemu 的 nat 配置，因为 qemu 默认不是 nat，没法通过 ip 和宿主机通讯</p>
+<p>记得配置成自己需要的的 ip，放到 &#x2F;etc&#x2F;qemu-ifup，加可执行权限 <code>chmod +x /etc/qemu-ifup</code>​</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Copyright IBM, Corp. 2010  </span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Authors:</span></span><br><span class="line"><span class="comment">#  Anthony Liguori &lt;aliguori@us.ibm.com&gt;</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># This work is licensed under the terms of the GNU GPL, version 2.  See</span></span><br><span class="line"><span class="comment"># the COPYING file in the top-level directory.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set to the name of your bridge</span></span><br><span class="line">BRIDGE=br0</span><br><span class="line"></span><br><span class="line"><span class="comment"># Network information</span></span><br><span class="line">NETWORK=192.168.53.0</span><br><span class="line">NETMASK=255.255.255.0</span><br><span class="line">GATEWAY=192.168.53.1</span><br><span class="line">DHCPRANGE=192.168.53.2,192.168.53.254</span><br><span class="line"></span><br><span class="line"><span class="comment"># Optionally parameters to enable PXE support</span></span><br><span class="line">TFTPROOT=</span><br><span class="line">BOOTP=</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_brctl</span></span>() &#123;</span><br><span class="line">    brctl <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_ifconfig</span></span>() &#123;</span><br><span class="line">    ifconfig <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_dd</span></span>() &#123;</span><br><span class="line">    <span class="built_in">dd</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_iptables_restore</span></span>() &#123;</span><br><span class="line">    iptables-restore <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_dnsmasq</span></span>() &#123;</span><br><span class="line">    dnsmasq <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">check_bridge</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> do_brctl show | grep <span class="string">&quot;^<span class="variable">$1</span>&quot;</span> &gt; /dev/null 2&gt; /dev/null; <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">return</span> 1</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">return</span> 0</span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">create_bridge</span></span>() &#123;</span><br><span class="line">    do_brctl addbr <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    do_brctl stp <span class="string">&quot;<span class="variable">$1</span>&quot;</span> off</span><br><span class="line">    do_brctl setfd <span class="string">&quot;<span class="variable">$1</span>&quot;</span> 0</span><br><span class="line">    do_ifconfig <span class="string">&quot;<span class="variable">$1</span>&quot;</span> <span class="string">&quot;<span class="variable">$GATEWAY</span>&quot;</span> netmask <span class="string">&quot;<span class="variable">$NETMASK</span>&quot;</span> up</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">enable_ip_forward</span></span>() &#123;</span><br><span class="line">    <span class="built_in">echo</span> 1 | do_dd of=/proc/sys/net/ipv4/ip_forward &gt; /dev/null</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">add_filter_rules</span></span>() &#123;</span><br><span class="line">do_iptables_restore &lt;&lt;<span class="string">EOF</span></span><br><span class="line"><span class="string"># Generated by iptables-save v1.3.6 on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">*nat</span></span><br><span class="line"><span class="string">:PREROUTING ACCEPT [61:9671]</span></span><br><span class="line"><span class="string">:POSTROUTING ACCEPT [121:7499]</span></span><br><span class="line"><span class="string">:OUTPUT ACCEPT [132:8691]</span></span><br><span class="line"><span class="string">-A POSTROUTING -s $NETWORK/$NETMASK -j MASQUERADE </span></span><br><span class="line"><span class="string">COMMIT</span></span><br><span class="line"><span class="string"># Completed on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string"># Generated by iptables-save v1.3.6 on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">*filter</span></span><br><span class="line"><span class="string">:INPUT ACCEPT [1453:976046]</span></span><br><span class="line"><span class="string">:FORWARD ACCEPT [0:0]</span></span><br><span class="line"><span class="string">:OUTPUT ACCEPT [1605:194911]</span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p tcp -m tcp --dport 67 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p udp -m udp --dport 67 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p tcp -m tcp --dport 53 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p udp -m udp --dport 53 -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -i $1 -o $1 -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -s $NETWORK/$NETMASK -i $BRIDGE -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -d $NETWORK/$NETMASK -o $BRIDGE -m state --state RELATED,ESTABLISHED -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -o $BRIDGE -j REJECT --reject-with icmp-port-unreachable </span></span><br><span class="line"><span class="string">-A FORWARD -i $BRIDGE -j REJECT --reject-with icmp-port-unreachable </span></span><br><span class="line"><span class="string">COMMIT</span></span><br><span class="line"><span class="string"># Completed on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">start_dnsmasq</span></span>() &#123;</span><br><span class="line">    do_dnsmasq \</span><br><span class="line">        --strict-order \</span><br><span class="line">        --except-interface=lo \</span><br><span class="line">        --interface=<span class="variable">$BRIDGE</span> \</span><br><span class="line">        --listen-address=<span class="variable">$GATEWAY</span> \</span><br><span class="line">        --bind-interfaces \</span><br><span class="line">        --dhcp-range=<span class="variable">$DHCPRANGE</span> \</span><br><span class="line">        --conf-file=<span class="string">&quot;&quot;</span> \</span><br><span class="line">        --pid-file=/var/run/qemu-dnsmasq-<span class="variable">$BRIDGE</span>.pid \</span><br><span class="line">        --dhcp-leasefile=/var/run/qemu-dnsmasq-<span class="variable">$BRIDGE</span>.leases \</span><br><span class="line">        --dhcp-no-override \</span><br><span class="line">        <span class="variable">$&#123;TFTPROOT:+&quot;--enable-tftp&quot;&#125;</span> \</span><br><span class="line">        <span class="variable">$&#123;TFTPROOT:+&quot;--tftp-root=$TFTPROOT&quot;&#125;</span> \</span><br><span class="line">        <span class="variable">$&#123;BOOTP:+&quot;--dhcp-boot=$BOOTP&quot;&#125;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">setup_bridge_nat</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> check_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">        create_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        enable_ip_forward</span><br><span class="line">        add_filter_rules <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        start_dnsmasq <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">setup_bridge_vlan</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> check_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">        create_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        start_dnsmasq <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setup_bridge_nat <span class="string">&quot;<span class="variable">$BRIDGE</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">    do_ifconfig <span class="string">&quot;<span class="variable">$1</span>&quot;</span> 0.0.0.0 up</span><br><span class="line">    do_brctl addif <span class="string">&quot;<span class="variable">$BRIDGE</span>&quot;</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>‍</p>
+<p>放到 &#x2F;etc&#x2F;qemu-ifdown，加可执行权限 <code>chmod +x /etc/qemu-ifdown</code>​</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Copyright IBM, Corp. 2010  </span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Authors:</span></span><br><span class="line"><span class="comment">#  Anthony Liguori &lt;aliguori@us.ibm.com&gt;</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># This work is licensed under the terms of the GNU GPL, version 2.  See</span></span><br><span class="line"><span class="comment"># the COPYING file in the top-level directory.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Set to the name of your bridge</span></span><br><span class="line">BRIDGE=br0</span><br><span class="line"></span><br><span class="line"><span class="comment"># Network information</span></span><br><span class="line">NETWORK=192.168.53.0</span><br><span class="line">NETMASK=255.255.255.0</span><br><span class="line">GATEWAY=192.168.53.1</span><br><span class="line">DHCPRANGE=192.168.53.2,192.168.53.254</span><br><span class="line"></span><br><span class="line"><span class="comment"># Optionally parameters to enable PXE support</span></span><br><span class="line">TFTPROOT=</span><br><span class="line">BOOTP=</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_brctl</span></span>() &#123;</span><br><span class="line">    brctl <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_ifconfig</span></span>() &#123;</span><br><span class="line">    ifconfig <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_dd</span></span>() &#123;</span><br><span class="line">    <span class="built_in">dd</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_iptables_restore</span></span>() &#123;</span><br><span class="line">    iptables-restore <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">do_dnsmasq</span></span>() &#123;</span><br><span class="line">    dnsmasq <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">check_bridge</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> do_brctl show | grep <span class="string">&quot;^<span class="variable">$1</span>&quot;</span> &gt; /dev/null 2&gt; /dev/null; <span class="keyword">then</span></span><br><span class="line">        <span class="built_in">return</span> 1</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="built_in">return</span> 0</span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">create_bridge</span></span>() &#123;</span><br><span class="line">    do_brctl addbr <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    do_brctl stp <span class="string">&quot;<span class="variable">$1</span>&quot;</span> off</span><br><span class="line">    do_brctl setfd <span class="string">&quot;<span class="variable">$1</span>&quot;</span> 0</span><br><span class="line">    do_ifconfig <span class="string">&quot;<span class="variable">$1</span>&quot;</span> <span class="string">&quot;<span class="variable">$GATEWAY</span>&quot;</span> netmask <span class="string">&quot;<span class="variable">$NETMASK</span>&quot;</span> up</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">enable_ip_forward</span></span>() &#123;</span><br><span class="line">    <span class="built_in">echo</span> 1 | do_dd of=/proc/sys/net/ipv4/ip_forward &gt; /dev/null</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">add_filter_rules</span></span>() &#123;</span><br><span class="line">do_iptables_restore &lt;&lt;<span class="string">EOF</span></span><br><span class="line"><span class="string"># Generated by iptables-save v1.3.6 on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">*nat</span></span><br><span class="line"><span class="string">:PREROUTING ACCEPT [61:9671]</span></span><br><span class="line"><span class="string">:POSTROUTING ACCEPT [121:7499]</span></span><br><span class="line"><span class="string">:OUTPUT ACCEPT [132:8691]</span></span><br><span class="line"><span class="string">-A POSTROUTING -s $NETWORK/$NETMASK -j MASQUERADE </span></span><br><span class="line"><span class="string">COMMIT</span></span><br><span class="line"><span class="string"># Completed on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string"># Generated by iptables-save v1.3.6 on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">*filter</span></span><br><span class="line"><span class="string">:INPUT ACCEPT [1453:976046]</span></span><br><span class="line"><span class="string">:FORWARD ACCEPT [0:0]</span></span><br><span class="line"><span class="string">:OUTPUT ACCEPT [1605:194911]</span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p tcp -m tcp --dport 67 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p udp -m udp --dport 67 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p tcp -m tcp --dport 53 -j ACCEPT </span></span><br><span class="line"><span class="string">-A INPUT -i $BRIDGE -p udp -m udp --dport 53 -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -i $1 -o $1 -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -s $NETWORK/$NETMASK -i $BRIDGE -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -d $NETWORK/$NETMASK -o $BRIDGE -m state --state RELATED,ESTABLISHED -j ACCEPT </span></span><br><span class="line"><span class="string">-A FORWARD -o $BRIDGE -j REJECT --reject-with icmp-port-unreachable </span></span><br><span class="line"><span class="string">-A FORWARD -i $BRIDGE -j REJECT --reject-with icmp-port-unreachable </span></span><br><span class="line"><span class="string">COMMIT</span></span><br><span class="line"><span class="string"># Completed on Fri Aug 24 15:20:25 2007</span></span><br><span class="line"><span class="string">EOF</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">start_dnsmasq</span></span>() &#123;</span><br><span class="line">    do_dnsmasq \</span><br><span class="line">        --strict-order \</span><br><span class="line">        --except-interface=lo \</span><br><span class="line">        --interface=<span class="variable">$BRIDGE</span> \</span><br><span class="line">        --listen-address=<span class="variable">$GATEWAY</span> \</span><br><span class="line">        --bind-interfaces \</span><br><span class="line">        --dhcp-range=<span class="variable">$DHCPRANGE</span> \</span><br><span class="line">        --conf-file=<span class="string">&quot;&quot;</span> \</span><br><span class="line">        --pid-file=/var/run/qemu-dnsmasq-<span class="variable">$BRIDGE</span>.pid \</span><br><span class="line">        --dhcp-leasefile=/var/run/qemu-dnsmasq-<span class="variable">$BRIDGE</span>.leases \</span><br><span class="line">        --dhcp-no-override \</span><br><span class="line">        <span class="variable">$&#123;TFTPROOT:+&quot;--enable-tftp&quot;&#125;</span> \</span><br><span class="line">        <span class="variable">$&#123;TFTPROOT:+&quot;--tftp-root=$TFTPROOT&quot;&#125;</span> \</span><br><span class="line">        <span class="variable">$&#123;BOOTP:+&quot;--dhcp-boot=$BOOTP&quot;&#125;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">setup_bridge_nat</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> check_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">        create_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        enable_ip_forward</span><br><span class="line">        add_filter_rules <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        start_dnsmasq <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="title">setup_bridge_vlan</span></span>() &#123;</span><br><span class="line">    <span class="keyword">if</span> check_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">        create_bridge <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">        start_dnsmasq <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line">    <span class="keyword">fi</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setup_bridge_nat <span class="string">&quot;<span class="variable">$BRIDGE</span>&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span> ; <span class="keyword">then</span></span><br><span class="line">    do_ifconfig <span class="string">&quot;<span class="variable">$1</span>&quot;</span> 0.0.0.0 up</span><br><span class="line">    do_brctl addif <span class="string">&quot;<span class="variable">$BRIDGE</span>&quot;</span> <span class="string">&quot;<span class="variable">$1</span>&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看 <a target="_blank" rel="noopener" href="https://wiki.qemu.org/Documentation/Networking/NAT">https://wiki.qemu.org/Documentation/Networking/NAT</a></p>
+<p>‍</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%BC%96%E8%AF%91u-boot"><span class="toc-number">1.</span> <span class="toc-text">编译u-boot</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/compile-uboot-1kkkd.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/compile-uboot-1kkkd.html&text=编译u-boot"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/compile-uboot-1kkkd.html&is_video=false&description=编译u-boot"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=编译u-boot&body=Check out this article: https://syscall.fun/post/compile-uboot-1kkkd.html"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/compile-uboot-1kkkd.html&title=编译u-boot"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/compile-uboot-1kkkd.html&name=编译u-boot&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/compile-uboot-1kkkd.html&t=编译u-boot"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2023
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
