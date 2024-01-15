@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”When using Ubuntu, I have encountered this kind of situation many times. It looks like the image">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fuck systemd-networkd-wait-online.service: &quot;start job is running for wait for network to be configured&quot;">
+<meta property="og:url" content="https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”When using Ubuntu, I have encountered this kind of situation many times. It looks like the image">
+<meta property="og:locale">
+<meta property="og:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202401151413666.png">
+<meta property="article:published_time" content="2024-01-15T03:43:19.000Z">
+<meta property="article:modified_time" content="2024-01-15T06:14:46.000Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202401151413666.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/post/compile-uboot-1kkkd.html"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&text=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&is_video=false&description=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;&body=Check out this article: https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&name=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&t=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#fuck-systemd-networkd-wait-online-service-%E2%80%9Cstart-job-is-running-for-wait-for-network-to-be-configured%E2%80%9D"><span class="toc-number">1.</span> <span class="toc-text">fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”</span></a></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2024-01-15T03:43:19.000Z" class="dt-published" itemprop="datePublished">2024-01-15</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="fuck-systemd-networkd-wait-online-service-“start-job-is-running-for-wait-for-network-to-be-configured”"><a href="#fuck-systemd-networkd-wait-online-service-“start-job-is-running-for-wait-for-network-to-be-configured”" class="headerlink" title="fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”"></a>fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”</h1><p>When using Ubuntu, I have encountered this kind of situation many times.</p>
+<p>It looks like the image shown.</p>
+<p>​<img src="https://scriptk1d-images.oss-cn-hongkong.aliyuncs.com/202401151413666.png" alt="image">​</p>
+<p>After booting into the system, you can see through <code>systemd-analyze blame</code>​ that the startup time of systemd-networkd-wait-online.service reaches several minutes.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">r00t@f4keserver:~$ sudo systemctl status systemd-networkd-wait-online.service</span><br><span class="line">● systemd-networkd-wait-online.service - Wait <span class="keyword">for</span> Network to be Configured</span><br><span class="line">     Loaded: loaded (/lib/systemd/system/systemd-networkd-wait-online.service; enabled-runtime; vendor preset: disabled)</span><br><span class="line">     Active: active (exited) since Mon 2024-01-15 03:36:01 UTC; 12min ago</span><br><span class="line">       Docs: man:systemd-networkd-wait-online.service(8)</span><br><span class="line">   Main PID: 624 (code=exited, status=0/SUCCESS)</span><br><span class="line">        CPU: 4ms</span><br><span class="line"></span><br><span class="line">Jan 15 03:35:56 f4keserver systemd[1]: Starting Wait <span class="keyword">for</span> Network to be Configured...</span><br><span class="line">Jan 15 03:36:01 f4keserver systemd-networkd-wait-online[624]: managing: ens33</span><br><span class="line">Jan 15 03:36:01 f4keserver systemd[1]: Finished Wait <span class="keyword">for</span> Network to be Configured.</span><br><span class="line"></span><br><span class="line">r00t@f4keserver:~$ <span class="built_in">cat</span> /lib/systemd/system/systemd-networkd-wait-online.service</span><br><span class="line"><span class="comment">#  SPDX-License-Identifier: LGPL-2.1-or-later</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment">#  This file is part of systemd.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment">#  systemd is free software; you can redistribute it and/or modify it</span></span><br><span class="line"><span class="comment">#  under the terms of the GNU Lesser General Public License as published by</span></span><br><span class="line"><span class="comment">#  the Free Software Foundation; either version 2.1 of the License, or</span></span><br><span class="line"><span class="comment">#  (at your option) any later version.</span></span><br><span class="line"></span><br><span class="line">[Unit]</span><br><span class="line">Description=Wait <span class="keyword">for</span> Network to be Configured</span><br><span class="line">Documentation=man:systemd-networkd-wait-online.service(8)</span><br><span class="line">DefaultDependencies=no</span><br><span class="line">Conflicts=shutdown.target</span><br><span class="line">Requires=systemd-networkd.service</span><br><span class="line">After=systemd-networkd.service</span><br><span class="line">Before=network-online.target shutdown.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Type=oneshot</span><br><span class="line">ExecStart=/lib/systemd/systemd-networkd-wait-online</span><br><span class="line">RemainAfterExit=<span class="built_in">yes</span></span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=network-online.target</span><br></pre></td></tr></table></figure>
+
+<p>You can see that there is a <code>timeout</code>​ parameter for <code>/lib/systemd/systemd-networkd-wait-online</code>​. This means you can add the argument <code>--timeout=1</code>​ in the corresponding systemd-networkd-wait-online service file, indicating a timeout of 1 second.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">r00t@f4keserver:~$ /lib/systemd/systemd-networkd-wait-online --<span class="built_in">help</span></span><br><span class="line">systemd-networkd-wait-online [OPTIONS...]</span><br><span class="line"></span><br><span class="line">Block until network is configured.</span><br><span class="line"></span><br><span class="line">  -h --<span class="built_in">help</span>                 Show this <span class="built_in">help</span></span><br><span class="line">     --version              Print version string</span><br><span class="line">  -q --quiet                Do not show status information</span><br><span class="line">  -i --interface=INTERFACE[:MIN_OPERSTATE[:MAX_OPERSTATE]]</span><br><span class="line">                            Block until at least these interfaces have appeared</span><br><span class="line">     --ignore=INTERFACE     Don<span class="string">&#x27;t take these interfaces into account</span></span><br><span class="line"><span class="string">  -o --operational-state=MIN_OPERSTATE[:MAX_OPERSTATE]</span></span><br><span class="line"><span class="string">                            Required operational state</span></span><br><span class="line"><span class="string">  -4 --ipv4                 Requires at least one IPv4 address</span></span><br><span class="line"><span class="string">  -6 --ipv6                 Requires at least one IPv6 address</span></span><br><span class="line"><span class="string">     --any                  Wait until at least one of the interfaces is online</span></span><br><span class="line"><span class="string">     --timeout=SECS         Maximum time to wait for network connectivity</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">See the systemd-networkd-wait-online.service(8) man page for details.</span></span><br></pre></td></tr></table></figure>
+
+<p>look like this</p>
+<p>&#x2F;lib&#x2F;systemd&#x2F;system&#x2F;systemd-networkd-wait-online.service</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">[Unit]</span><br><span class="line">Description=Wait <span class="keyword">for</span> Network to be Configured</span><br><span class="line">Documentation=man:systemd-networkd-wait-online.service(8)</span><br><span class="line">DefaultDependencies=no</span><br><span class="line">Conflicts=shutdown.target</span><br><span class="line">Requires=systemd-networkd.service</span><br><span class="line">After=systemd-networkd.service</span><br><span class="line">Before=network-online.target shutdown.target</span><br><span class="line"></span><br><span class="line">[Service]</span><br><span class="line">Type=oneshot</span><br><span class="line">ExecStart=/lib/systemd/systemd-networkd-wait-online --<span class="built_in">timeout</span>=1</span><br><span class="line">RemainAfterExit=<span class="built_in">yes</span></span><br><span class="line"></span><br><span class="line">[Install]</span><br><span class="line">WantedBy=network-online.target</span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#fuck-systemd-networkd-wait-online-service-%E2%80%9Cstart-job-is-running-for-wait-for-network-to-be-configured%E2%80%9D"><span class="toc-number">1.</span> <span class="toc-text">fuck systemd-networkd-wait-online.service: “start job is running for wait for network to be configured”</span></a></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&text=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&is_video=false&description=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;&body=Check out this article: https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&title=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&name=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/fuck-systemdnetworkdwaitonlineservice-start-job-is-running-for-wait-for-network-to-be-configured-z2cijvy.html&t=fuck systemd-networkd-wait-online.service: &#34;start job is running for wait for network to be configured&#34;"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2024
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
