@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="io.systemd.Resolve 请求全链路深度分析 基于fedora44 的 systemd 259.6 源码分析（下载链接在文章结尾）。本文跟踪一个 DNS 查询请求从应用程序 gethostbyname() 调用,到经过 NSS 模块、Varlink IPC、systemd-resolved、DNS 事务、再到回复返回的完整旅程。 免责声明：源码的分析我大概看过一些，然后AI帮我分析了中">
+<meta property="og:type" content="article">
+<meta property="og:title" content="io.systemd.Resolve 请求全链路深度分析">
+<meta property="og:url" content="https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="io.systemd.Resolve 请求全链路深度分析 基于fedora44 的 systemd 259.6 源码分析（下载链接在文章结尾）。本文跟踪一个 DNS 查询请求从应用程序 gethostbyname() 调用,到经过 NSS 模块、Varlink IPC、systemd-resolved、DNS 事务、再到回复返回的完整旅程。 免责声明：源码的分析我大概看过一些，然后AI帮我分析了中">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-06-25T15:35:04.000Z">
+<meta property="article:modified_time" content="2026-06-25T16:32:11.000Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>io.systemd.Resolve 请求全链路深度分析</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/post/n0pstf-2025-z1pfrul.html"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&text=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&is_video=false&description=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=io.systemd.Resolve 请求全链路深度分析&body=Check out this article: https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&name=io.systemd.Resolve 请求全链路深度分析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&t=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#io-systemd-Resolve-%E8%AF%B7%E6%B1%82%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">io.systemd.Resolve 请求全链路深度分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-0-%E7%AB%A0-%E8%83%8C%E6%99%AF%E6%95%85%E4%BA%8B"><span class="toc-number">1.1.</span> <span class="toc-text">第 0 章 背景故事</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-1-%E7%AB%A0-%E5%85%A8%E6%99%AF-Linux-%E5%90%8D%E5%AD%97%E8%A7%A3%E6%9E%90%E4%B8%8E-Varlink-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.2.</span> <span class="toc-text">第 1 章 全景:Linux 名字解析与 Varlink 的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-2-%E7%AB%A0-%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84-%E4%B8%89%E5%A5%97%E7%8A%B6%E6%80%81%E6%9C%BA%E7%9A%84%E5%8D%8F%E4%BD%9C"><span class="toc-number">1.3.</span> <span class="toc-text">第 2 章 整体架构:三套状态机的协作</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-3-%E7%AB%A0-%E6%9C%8D%E5%8A%A1%E7%AB%AF-socket-%E7%9A%84%E8%AF%9E%E7%94%9F"><span class="toc-number">1.4.</span> <span class="toc-text">第 3 章 服务端:socket 的诞生</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%88%9B%E5%BB%BA-server%E3%80%81%E7%BB%91%E5%AE%9A%E6%96%B9%E6%B3%95%E3%80%81%E7%BB%91%E5%AE%9A%E5%9C%B0%E5%9D%80"><span class="toc-number">1.4.1.</span> <span class="toc-text">3.1 创建 server、绑定方法、绑定地址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-IDL-%E6%8E%A5%E5%8F%A3%E7%9A%84%E2%80%9D%E8%87%AA%E6%8F%8F%E8%BF%B0%E2%80%9D"><span class="toc-number">1.4.2.</span> <span class="toc-text">3.2 IDL:接口的”自描述”</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E5%AE%A2%E6%88%B7%E7%AB%AF-NSS-%E6%A8%A1%E5%9D%97%E5%8F%91%E8%B5%B7%E8%BF%9E%E6%8E%A5"><span class="toc-number">1.5.</span> <span class="toc-text">第 4 章 客户端:NSS 模块发起连接</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-NSS-%E5%85%A5%E5%8F%A3%E8%A2%AB-libc-%E8%B0%83%E8%B5%B7"><span class="toc-number">1.5.1.</span> <span class="toc-text">4.1 NSS 入口被 libc 调起</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-connect-to-resolved-%E6%89%93%E5%BC%80-socket"><span class="toc-number">1.5.2.</span> <span class="toc-text">4.2 connect_to_resolved:打开 socket</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-NSS-%E6%A8%A1%E5%9D%97%E7%9A%84%E7%89%B9%E6%AE%8A%E8%80%83%E9%87%8F"><span class="toc-number">1.5.3.</span> <span class="toc-text">4.3 NSS 模块的特殊考量</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-5-%E7%AB%A0-%E5%90%8C%E6%AD%A5-RPC-sd-varlink-call-%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">1.6.</span> <span class="toc-text">第 5 章 同步 RPC:sd_varlink_call 的状态机</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-varlink-enqueue-json-%E6%B6%88%E6%81%AF%E4%B8%8E-fd-%E7%9A%84%E8%BE%B9%E7%95%8C%E7%BB%91%E5%AE%9A"><span class="toc-number">1.6.1.</span> <span class="toc-text">5.1 varlink_enqueue_json:消息与 fd 的边界绑定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-sd-varlink-process-%E7%8A%B6%E6%80%81%E6%9C%BA%E7%9A%84%E5%8F%91%E5%8A%A8%E6%9C%BA"><span class="toc-number">1.6.2.</span> <span class="toc-text">5.2 sd_varlink_process:状态机的发动机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-6-%E7%AB%A0-%E6%9C%8D%E5%8A%A1%E7%AB%AF-accept-%E4%B8%8E-dispatch"><span class="toc-number">1.7.</span> <span class="toc-text">第 6 章 服务端:accept 与 dispatch</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E5%AE%89%E5%85%A8%E6%A3%80%E6%9F%A5-per-UID-%E9%85%8D%E9%A2%9D"><span class="toc-number">1.7.1.</span> <span class="toc-text">6.1 安全检查:per-UID 配额</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-dispatch-method-JSON-%E8%90%BD%E5%88%B0-C-%E5%9B%9E%E8%B0%83"><span class="toc-number">1.7.2.</span> <span class="toc-text">6.2 dispatch_method:JSON 落到 C 回调</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-7-%E7%AB%A0-DNS-%E6%9F%A5%E8%AF%A2%E7%9A%84%E5%BC%82%E6%AD%A5%E8%A7%A6%E5%8F%91"><span class="toc-number">1.8.</span> <span class="toc-text">第 7 章 DNS 查询的异步触发</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-parse-as-address-%E7%BB%95%E8%BF%87%E7%BD%91%E7%BB%9C%E7%9A%84%E4%BC%98%E5%8C%96"><span class="toc-number">1.8.1.</span> <span class="toc-text">7.1 parse_as_address:绕过网络的优化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-8-%E7%AB%A0-%E5%9B%9E%E5%A4%8D%E8%B7%AF%E5%BE%84-%E4%BB%8E-DNS-%E5%93%8D%E5%BA%94%E5%88%B0-Varlink-JSON"><span class="toc-number">1.9.</span> <span class="toc-text">第 8 章 回复路径:从 DNS 响应到 Varlink JSON</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-1-varlink-write-%E6%95%B0%E6%8D%AE%E7%9C%9F%E6%AD%A3%E5%8F%91%E5%87%BA%E5%8E%BB"><span class="toc-number">1.9.1.</span> <span class="toc-text">8.1 varlink_write:数据真正发出去</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-9-%E7%AB%A0-%E9%94%99%E8%AF%AF%E4%BC%A0%E6%92%AD%E4%B8%8E-NSS-%E7%8A%B6%E6%80%81%E6%98%A0%E5%B0%84"><span class="toc-number">1.10.</span> <span class="toc-text">第 9 章 错误传播与 NSS 状态映射</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#9-1-varlink-error-%E2%86%92-errno"><span class="toc-number">1.10.1.</span> <span class="toc-text">9.1 varlink error → errno</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-2-varlink-error-%E2%86%92-NSS-%E7%8A%B6%E6%80%81"><span class="toc-number">1.10.2.</span> <span class="toc-text">9.2 varlink error → NSS 状态</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-3-vl-on-disconnect-%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B6%88%E5%A4%B1%E6%97%B6%E6%B8%85%E7%90%86%E6%9F%A5%E8%AF%A2"><span class="toc-number">1.10.3.</span> <span class="toc-text">9.3 vl_on_disconnect:客户端消失时清理查询</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-10-%E7%AB%A0-%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%97%B6%E5%BA%8F-%E6%8A%8A%E6%89%80%E6%9C%89%E7%AB%A0%E8%8A%82%E4%B8%B2%E8%B5%B7%E6%9D%A5"><span class="toc-number">1.11.</span> <span class="toc-text">第 10 章 端到端时序:把所有章节串起来</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-11-%E7%AB%A0-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6%E4%B8%8E%E6%80%BB%E7%BB%93"><span class="toc-number">1.12.</span> <span class="toc-text">第 11 章 设计哲学与总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#11-1-%E4%B8%89%E4%B8%AA%E6%A0%B8%E5%BF%83%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="toc-number">1.12.1.</span> <span class="toc-text">11.1 三个核心设计原则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-2-%E6%A0%B8%E5%BF%83%E6%B4%9E%E5%AF%9F"><span class="toc-number">1.12.2.</span> <span class="toc-text">11.2 核心洞察</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E9%80%9F%E6%9F%A5"><span class="toc-number">1.13.</span> <span class="toc-text">附录:核心数据结构速查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-%E6%9C%AC%E6%8A%A5%E5%91%8A%E6%B6%89%E5%8F%8A%E7%9A%84%E5%85%A8%E9%83%A8%E6%BA%90%E6%96%87%E4%BB%B6"><span class="toc-number">1.14.</span> <span class="toc-text">附录:本报告涉及的全部源文件</span></a></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        io.systemd.Resolve 请求全链路深度分析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-06-25T15:35:04.000Z" class="dt-published" itemprop="datePublished">2026-06-25</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="io-systemd-Resolve-请求全链路深度分析"><a href="#io-systemd-Resolve-请求全链路深度分析" class="headerlink" title="io.systemd.Resolve 请求全链路深度分析"></a>io.systemd.Resolve 请求全链路深度分析</h1><blockquote>
+<p>基于fedora44 的 systemd 259.6 源码分析（下载链接在文章结尾）。本文跟踪一个 DNS 查询请求从应用程序 <code>gethostbyname()</code> 调用,到经过 NSS 模块、Varlink IPC、systemd-resolved、DNS 事务、再到回复返回的完整旅程。</p>
+<p>免责声明：源码的分析我大概看过一些，然后AI帮我分析了中间没必要看的部分，串起来成了这个文章。</p>
+</blockquote>
+<hr>
+<h2 id="第-0-章-背景故事"><a href="#第-0-章-背景故事" class="headerlink" title="第 0 章 背景故事"></a>第 0 章 背景故事</h2><p>之所以捣鼓这个是因为我发现主机上突然很多遥测的域名（proj-xtrace-7e235817c9b9381c22d8b743908d469f-cn-beijing.cn-beijing.log.aliyuncs.com）出现，有点恶心人，但是很多工具都没法把域名和进程绑定到一起，只能深入了解一下getaddrinfo是怎么拿到一个域名的ip的，这样反推写一些hook再对应一下pid就能得知是什么程序。我的机器是fedora44，基于systemd-resolved，所以是走的varlink。</p>
+<p>我粗略的epbf实现：<a target="_blank" rel="noopener" href="https://github.com/scriptk1d/varlink_snoop">https://github.com/scriptk1d/varlink_snoop</a></p>
+<p>大概的思路就是：</p>
+<ol>
+<li>hook <code>connect()</code>​ → 检查 <code>sockaddr_un.sun_path == /run/systemd/resolve/io.systemd.Resolve</code> → 把 fd 加入白名单</li>
+<li>hook 发送族（<code>write</code>​&#x2F;<code>writev</code>​&#x2F;<code>sendto</code>​&#x2F;<code>sendmsg</code>）→ 只对白名单 fd dump payload（Varlink 明文 JSON）</li>
+<li>记录 PID &#x2F; TID &#x2F; comm &#x2F; 时间戳，ring buffer 上报用户态</li>
+</ol>
+<p>相比 uprobe <code>getaddrinfo</code>​：<strong>不依赖 libc、不挑语言运行时、静态链接也照抓</strong>（因为抓的是所有客户端共同收口的那个 Varlink 连接）。</p>
+<h2 id="第-1-章-全景-Linux-名字解析与-Varlink-的关系"><a href="#第-1-章-全景-Linux-名字解析与-Varlink-的关系" class="headerlink" title="第 1 章 全景:Linux 名字解析与 Varlink 的关系"></a>第 1 章 全景:Linux 名字解析与 Varlink 的关系</h2><p>在 systemd 的世界里,<code>/run/systemd/resolve/io.systemd.Resolve</code>​ 是一个特殊的 Unix domain socket。它不是一个普通的服务监听 socket,而是一个 <strong>Varlink 协议端点</strong>——一个用 JSON 消息、NUL 分隔、单连接请求&#x2F;回复模型构建的轻量级 RPC 协议。</p>
+<p>为什么 systemd 不复用已有的 D-Bus,而要新造一个 Varlink?核心动机写在 <code>varlink-internal.h:43-114</code>​ 的注释里:<strong>D-Bus 太重,不适合作为 NSS 模块这种”每进程一次调用”的客户端</strong>。NSS 模块被加载到每个进程里,不能依赖一个长期运行的 D-Bus 客户端连接。Varlink 的设计目标是:协议极简(单 JSON 文件即可描述)、连接开销极低(一个 socket)、无类型注册和信号订阅开销、可直接被静态链接进 NSS 模块。</p>
+<p>整个 DNS 解析链路全景如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"> 应用进程 (curl, ssh, ...)              systemd-resolved 守护进程</span><br><span class="line">┌────────────────────────────┐         ┌──────────────────────────┐</span><br><span class="line">│  getaddrinfo(&quot;example.com&quot;)│         │                          │</span><br><span class="line">│         │                  │         │                          │</span><br><span class="line">│         ▼                  │         │                          │</span><br><span class="line">│  libc NSS dispatcher       │         │                          │</span><br><span class="line">│         │                  │         │                          │</span><br><span class="line">│  根据行nsswitch.conf:      │         │                          │</span><br><span class="line">│  &quot;hosts: files resolve dns&quot;│         │                          │</span><br><span class="line">│         │                  │         │                          │</span><br><span class="line">│         ▼                  │         │                          │</span><br><span class="line">│  libnss_resolve.so.2       │  var-   │  /run/systemd/resolve/   │</span><br><span class="line">│  (_nss_resolve_gethost-    │  link   │  io.systemd.Resolve      │</span><br><span class="line">│   byname4_r 入口)          │  JSON   │  ↑ AF_UNIX listen socket │</span><br><span class="line">│         │                  │ over   │  │                        │</span><br><span class="line">│         ▼                  │ AF_UNIX│  ▼                        │</span><br><span class="line">│  sd_varlink_connect_addr() │ ◀────▶ │  accept4() → sd_varlink   │</span><br><span class="line">│  sd_varlink_call(          │         │                          │</span><br><span class="line">│    &quot;io.systemd.Resolve.    │         │  dispatch_method()       │</span><br><span class="line">│     ResolveHostname&quot;,      │         │         │                │</span><br><span class="line">│     &#123;name:&quot;example.com&quot;&#125;)  │         │         ▼                │</span><br><span class="line">│         │                  │         │  vl_method_resolve_      │</span><br><span class="line">│  ── 同步阻塞等待 ──        │         │    hostname()            │</span><br><span class="line">│         │                  │         │         │                │</span><br><span class="line">│         │                  │         │         ▼                │</span><br><span class="line">│         │                  │         │  dns_query_go() ── 发往上游 DNS</span><br><span class="line">│         │                  │         │         │                │</span><br><span class="line">│         │                  │         │         ▼                │</span><br><span class="line">│         │                  │         │  vl_method_resolve_      │</span><br><span class="line">│         │                  │         │    hostname_complete()   │</span><br><span class="line">│         │                  │         │         │                │</span><br><span class="line">│         │                  │         │  sd_varlink_replybo(     │</span><br><span class="line">│         │                  │         │    addresses:[...])      │</span><br><span class="line">│         ▼                  │         │         │                │</span><br><span class="line">│  sd_json_dispatch(回复)    │ ◀────── │  ───────┘                │</span><br><span class="line">│         │                  │         │                          │</span><br><span class="line">│  填到 struct hostent        │         │                          │</span><br><span class="line">│  返回 NSS_STATUS_SUCCESS   │         │                          │</span><br><span class="line">└────────────────────────────┘         └──────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p>本文将逐站拆解这条链路。涉及的核心源文件:</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>​<code>src/nss-resolve/nss-resolve.c</code></td>
+<td>客户端 NSS 模块,把 <code>gethostbyname</code> 翻译成 Varlink 调用</td>
+</tr>
+<tr>
+<td>​<code>src/libsystemd/sd-varlink/sd-varlink.c</code></td>
+<td>Varlink 协议库(客户端+服务端共用)</td>
+</tr>
+<tr>
+<td>​<code>src/libsystemd/sd-varlink/varlink-internal.h</code></td>
+<td>​<code>sd_varlink</code> 结构与状态机定义</td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved.c</code></td>
+<td>systemd-resolved 主进程入口</td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-manager.c</code></td>
+<td>守护进程 Manager 管理,含 <code>manager_start()</code></td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-varlink.c</code></td>
+<td>Varlink 服务端 method handler 实现</td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-dns-query.c</code></td>
+<td>DNS 查询的协议无关抽象</td>
+</tr>
+<tr>
+<td>​<code>src/shared/varlink-io.systemd.Resolve.c</code></td>
+<td>​<code>io.systemd.Resolve</code> 接口的 IDL 定义</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="第-2-章-整体架构-三套状态机的协作"><a href="#第-2-章-整体架构-三套状态机的协作" class="headerlink" title="第 2 章 整体架构:三套状态机的协作"></a>第 2 章 整体架构:三套状态机的协作</h2><p>这条链路最容易被忽略的设计点是:<strong>全程有三个独立状态机在协作</strong>。理解它们的边界,才能理解为什么代码这样写。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">客户端 sd_varlink                Varlink 协议              服务端 sd_varlink</span><br><span class="line">(调用线程私有)                   (跨进程,跨 socket)       (event loop 内)</span><br><span class="line">┌──────────────────┐             ┌─────────────┐          ┌──────────────────┐</span><br><span class="line">│ IDLE_CLIENT       │             │             │          │ IDLE_SERVER       │</span><br><span class="line">│   │               │             │             │          │   │               │</span><br><span class="line">│   │ call()        │   发起方法  │             │ accept + │   │ 收到 JSON      │</span><br><span class="line">│   ▼               │ ─────────▶ │             │ ◀──────  │   ▼               │</span><br><span class="line">│ CALLING           │             │             │ 读 socket│ PROCESSING_METHOD │</span><br><span class="line">│   │               │             │             │          │   │ 回调用户函数   │</span><br><span class="line">│   │ 收到回复       │             │             │          │   │ (vl_method_*) │</span><br><span class="line">│   ▼               │ ◀───────── │             │ ──────▶  │   ▼               │</span><br><span class="line">│ CALLED            │   返回 JSON │             │ 写 socket│ PROCESSED_METHOD  │</span><br><span class="line">│   │               │             │             │          │   │               │</span><br><span class="line">│   │ return        │             │             │          │   ▼               │</span><br><span class="line">│   ▼               │             │             │          │ IDLE_SERVER       │</span><br><span class="line">│ IDLE_CLIENT       │             │             │          │                   │</span><br><span class="line">└──────────────────┘             └─────────────┘          └──────────────────┘</span><br><span class="line">     (21 状态中的                                      (21 状态中的</span><br><span class="line">      4 个客户端状态)                                   服务端状态)</span><br><span class="line">                                                │</span><br><span class="line">                                                │ 异步 dns_query_go()</span><br><span class="line">                                                ▼</span><br><span class="line">                                     ┌────────────────────┐</span><br><span class="line">                                     │ DnsQuery 状态机     │</span><br><span class="line">                                     │ (DNS_TRANSACTION_*) │</span><br><span class="line">                                     │ 独立!与 Varlink 解耦│</span><br><span class="line">                                     └────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<p>这三个状态机分别定义在:</p>
+<ul>
+<li><strong>客户端 &#x2F; 服务端 Varlink 状态机</strong>: <code>varlink-internal.h:11-41</code>​ 的 <code>VarlinkState</code> 枚举,共 21 个状态(8 个客户端、7 个服务端、6 个关闭期共享)</li>
+<li><strong>DNS 查询状态机</strong>: <code>resolved-dns-transaction.h</code>​ 的 <code>DnsTransactionState</code>,跟踪单个 DNS 数据包在网络层的旅程</li>
+<li><strong>DnsQuery 状态机</strong>: <code>resolved-dns-query.c</code>​ 中通过 <code>q-&gt;state</code> 字段管理,是 DNS 事务之上的”用户意图”层</li>
+</ul>
+<p>注意第三个状态机 (<code>DnsQuery</code>​) 是<strong>故意与 Varlink 解耦</strong>的。一个 Varlink method 调用可能触发多个 DNS transaction(因为 CNAME 链、A+AAAA 双查询、多 DNS 服务器轮询),<code>DnsQuery</code> 把这些聚合起来,完成后回调到 Varlink 层。这种解耦使得 systemd-resolved 可以同时服务于 Varlink、D-Bus、内置 DNS stub listener 三种客户端,共用同一套 DNS 查询逻辑。</p>
+<hr>
+<h2 id="第-3-章-服务端-socket-的诞生"><a href="#第-3-章-服务端-socket-的诞生" class="headerlink" title="第 3 章 服务端:socket 的诞生"></a>第 3 章 服务端:socket 的诞生</h2><p>跟踪一个 DNS 查询从服务端 socket 的诞生开始。systemd-resolved 的进程入口在 <code>resolved.c:68</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">r = manager_new(&amp;m);          <span class="comment">// resolved.c:68</span></span><br><span class="line">...</span><br><span class="line">r = manager_start(m);         <span class="comment">// resolved.c:72</span></span><br></pre></td></tr></table></figure>
+
+<p>​<code>manager_start()</code>​ 在 <code>resolved-manager.c:822-836</code> 极简:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">manager_start</span><span class="params">(Manager *m)</span> &#123;</span><br><span class="line">        <span class="type">int</span> r;</span><br><span class="line">        assert(m);</span><br><span class="line">        r = manager_dns_stub_start(m);    <span class="comment">// 启动 127.0.0.53:53 DNS stub</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">        r = manager_varlink_init(m);      <span class="comment">// 启动 Varlink 服务端 ← 我们关心的</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>manager_varlink_init()</code>​ 在 <code>resolved-varlink.c:1547-1559</code>​ 把工作分给两个独立 server:<strong>主查询服务</strong> 和 <strong>监控服务</strong>(后者用于 <code>resolvectl monitor</code>)。本报告只跟踪前者。</p>
+<h3 id="3-1-创建-server、绑定方法、绑定地址"><a href="#3-1-创建-server、绑定方法、绑定地址" class="headerlink" title="3.1 创建 server、绑定方法、绑定地址"></a>3.1 创建 server、绑定方法、绑定地址</h3><p>​<code>varlink_main_server_init()</code>​ 在 <code>resolved-varlink.c:1492-1545</code> 完成三件事:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* 1. 创建 server,启用 ACCOUNT_UID(按 UID 计费) */</span></span><br><span class="line">r = varlink_server_new(&amp;s, SD_VARLINK_SERVER_ACCOUNT_UID, m);</span><br><span class="line"><span class="comment">/* ↑ 注意这里没有用 SD_VARLINK_SERVER_ROOT_ONLY,意味着所有本地用户都能查询 DNS。</span></span><br><span class="line"><span class="comment">   防滥用靠 ACCOUNT_UID 的 per-UID 连接数上限(默认 128,见 sd-varlink.c:43)。  */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/* 2. 注册 io.systemd.Resolve 和 io.systemd.service 两个接口 */</span></span><br><span class="line">r = sd_varlink_server_add_interface_many(s,</span><br><span class="line">                &amp;vl_interface_io_systemd_Resolve,    <span class="comment">// IDL 元数据</span></span><br><span class="line">                &amp;vl_interface_io_systemd_service);</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 3. 把方法名 → C 回调函数的映射表登记进去 */</span></span><br><span class="line">r = sd_varlink_server_bind_method_many(s,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.ResolveHostname&quot;</span>,  vl_method_resolve_hostname,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.ResolveAddress&quot;</span>,   vl_method_resolve_address,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.ResolveService&quot;</span>,   vl_method_resolve_service,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.ResolveRecord&quot;</span>,    vl_method_resolve_record,</span><br><span class="line">                ...);</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个 <strong>systemd-resolved 复用 io.systemd.service 接口</strong> 的设计:同一个 server 上同时挂着 <code>io.systemd.service.Ping</code>​、<code>SetLogLevel</code>​、<code>GetEnvironment</code>​,这些是所有 systemd 守护进程通用的”内省”方法,定义在 <code>src/libsystemd/sd-varlink/varlink-io.systemd.c</code>。</p>
+<p>接下来绑定地址(<code>resolved-varlink.c:1530-1537</code>):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">r = sd_varlink_server_listen_auto(s);   <span class="comment">/* 先尝试 socket activation */</span></span><br><span class="line"><span class="keyword">if</span> (r == <span class="number">0</span>) &#123;                            <span class="comment">/* 没拿到 systemd 传来的 fd */</span></span><br><span class="line">        r = sd_varlink_server_listen_address(s,</span><br><span class="line">                <span class="string">&quot;/run/systemd/resolve/io.systemd.Resolve&quot;</span>, <span class="number">0666</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>listen_auto</code>​ 是 systemd 服务进程的标配:启动时 systemd 可能已经通过 <code>sd_listen_fds()</code>​ 把监听 fd 直接传给 resolved(socket activation),这时不再 <code>bind()</code>​。如果没有,就回退到 <code>listen_address</code>​ 自己创建 socket。两条路径最终都调用 <code>varlink_server_create_listen_fd_socket()</code>​(<code>sd-varlink.c:3606-3634</code>​),把 fd 注册到 sd-event 上,绑定 <code>connect_callback</code>。</p>
+<h3 id="3-2-IDL-接口的”自描述”"><a href="#3-2-IDL-接口的”自描述”" class="headerlink" title="3.2 IDL:接口的”自描述”"></a>3.2 IDL:接口的”自描述”</h3><p>​<code>io.systemd.Resolve.ResolveHostname</code>​ 的 IDL 定义在 <code>src/shared/varlink-io.systemd.Resolve.c:124-139</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="title function_">SD_VARLINK_DEFINE_METHOD</span><span class="params">(</span></span><br><span class="line"><span class="params">                ResolveHostname,</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_INPUT(ifindex, SD_VARLINK_INT, SD_VARLINK_NULLABLE),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_INPUT(name,     SD_VARLINK_STRING, <span class="number">0</span>),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_INPUT(family,   SD_VARLINK_INT, SD_VARLINK_NULLABLE),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_INPUT(flags,    SD_VARLINK_INT, SD_VARLINK_NULLABLE),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_OUTPUT_BY_TYPE(addresses, ResolvedAddress, SD_VARLINK_ARRAY),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_OUTPUT(name,    SD_VARLINK_STRING, <span class="number">0</span>),</span></span><br><span class="line"><span class="params">                SD_VARLINK_DEFINE_OUTPUT(flags,   SD_VARLINK_INT, <span class="number">0</span>))</span>;</span><br></pre></td></tr></table></figure>
+
+<p>这份 IDL 在编译期变成静态 <code>sd_varlink_symbol</code>​ 结构,运行时被 <code>sd_varlink_server_add_interface()</code>​ 注册到 server 的 <code>symbols</code>​ hashmap。此后当客户端的请求 JSON 进来,<code>varlink_dispatch_method()</code>​ 会把请求参数交给 <code>varlink_idl_validate_method_call()</code>​(<code>sd-varlink-idl.c</code>​)做类型校验,校验不过直接回 <code>InvalidParameter</code>​ 错误,不让用户回调见到非法数据。这是 <strong>IDL 作为协议契约</strong> 的关键作用。</p>
+<hr>
+<h2 id="第-4-章-客户端-NSS-模块发起连接"><a href="#第-4-章-客户端-NSS-模块发起连接" class="headerlink" title="第 4 章 客户端:NSS 模块发起连接"></a>第 4 章 客户端:NSS 模块发起连接</h2><p>现在切换视角。一个普通程序 <code>curl https://example.com</code>​,libc 内部会调用 <code>getaddrinfo()</code>​,后者依据 <code>/etc/nsswitch.conf</code>​ 的 <code>hosts:</code>​ 行依次尝试各个 NSS 模块。配置为 <code>hosts: files resolve dns myhostname</code>​ 时,<code>libnss_resolve.so.2</code> 是第二个被尝试的模块。</p>
+<h3 id="4-1-NSS-入口被-libc-调起"><a href="#4-1-NSS-入口被-libc-调起" class="headerlink" title="4.1 NSS 入口被 libc 调起"></a>4.1 NSS 入口被 libc 调起</h3><p>​<code>libnss_resolve.so.2</code>​ 的代码全部在 <code>nss-resolve.c</code>​。导出符号形如 <code>_nss_resolve_gethostbyname4_r</code>​(glibc 的 NSS ABI 要求这个奇怪的命名)。函数原型在 <code>nss-resolve.c:191-347</code>,核心是这三段:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">enum</span> <span class="title">nss_status</span> _<span class="title">nss_resolve_gethostbyname4_r</span>(</span></span><br><span class="line"><span class="class">                <span class="title">const</span> <span class="title">char</span> *<span class="title">name</span>, <span class="keyword">struct</span> <span class="title">gaih_addrtuple</span> **<span class="title">pat</span>,</span></span><br><span class="line"><span class="class">                <span class="title">char</span> *<span class="title">buffer</span>, <span class="title">size_t</span> <span class="title">buflen</span>,</span></span><br><span class="line"><span class="class">                <span class="title">int</span> *<span class="title">errnop</span>, <span class="title">int</span> *<span class="title">h_errnop</span>, <span class="title">int32_t</span> *<span class="title">ttlp</span>) &#123;</span></span><br><span class="line"></span><br><span class="line">        _cleanup_(sd_varlink_unrefp) sd_varlink *link = <span class="literal">NULL</span>;</span><br><span class="line">        _cleanup_(sd_json_variant_unrefp) sd_json_variant *cparams = <span class="literal">NULL</span>;</span><br><span class="line">        ...</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 第 1 步:建立连接 */</span></span><br><span class="line">        r = connect_to_resolved(&amp;link);                       <span class="comment">/* L213 */</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">goto</span> fail;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 第 2 步:构造请求参数 JSON */</span></span><br><span class="line">        r = sd_json_buildo(&amp;cparams,</span><br><span class="line">                        SD_JSON_BUILD_PAIR_STRING(<span class="string">&quot;name&quot;</span>, name),</span><br><span class="line">                        SD_JSON_BUILD_PAIR_UNSIGNED(<span class="string">&quot;flags&quot;</span>, query_flags()));   <span class="comment">/* L217 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 第 3 步:同步发起 RPC */</span></span><br><span class="line">        <span class="type">const</span> <span class="type">char</span> *error_id;</span><br><span class="line">        r = sd_varlink_call(link, <span class="string">&quot;io.systemd.Resolve.ResolveHostname&quot;</span>,</span><br><span class="line">                            cparams, &amp;rparams, &amp;error_id);    <span class="comment">/* L230 */</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">goto</span> fail;</span><br><span class="line">        <span class="keyword">if</span> (!isempty(error_id)) &#123; <span class="comment">/* 进入错误分支 */</span> &#125;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 <code>_cleanup_(sd_varlink_unrefp)</code>​ —— 整个 NSS 调用期间持有的 <code>sd_varlink</code> 对象用 cleanup 属性绑定了析构函数,函数任何 return 路径都会自动关闭连接。这是 systemd 代码里无处不在的 RAII 模式。</p>
+<h3 id="4-2-connect-to-resolved-打开-socket"><a href="#4-2-connect-to-resolved-打开-socket" class="headerlink" title="4.2 connect_to_resolved:打开 socket"></a>4.2 connect_to_resolved:打开 socket</h3><p>​<code>connect_to_resolved()</code>​ 在 <code>nss-resolve.c:48-62</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">connect_to_resolved</span><span class="params">(sd_varlink **ret)</span> &#123;</span><br><span class="line">        _cleanup_(sd_varlink_unrefp) sd_varlink *link = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="type">int</span> r;</span><br><span class="line">        r = sd_varlink_connect_address(&amp;link,</span><br><span class="line">                <span class="string">&quot;/run/systemd/resolve/io.systemd.Resolve&quot;</span>);   <span class="comment">/* L52 */</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">        r = sd_varlink_set_relative_timeout(link,</span><br><span class="line">                SD_RESOLVED_QUERY_TIMEOUT_USEC);              <span class="comment">/* L56 */</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">        *ret = TAKE_PTR(link);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用 <code>sd_varlink_connect_address()</code>​(<code>sd-varlink.c:158-208</code>)展开:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">v-&gt;input_fd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, <span class="number">0</span>);  <span class="comment">/* L170 */</span></span><br><span class="line">v-&gt;output_fd = v-&gt;input_fd = fd_move_above_stdio(v-&gt;input_fd);              <span class="comment">/* L174 */</span></span><br><span class="line">r = sockaddr_un_set_path(&amp;sockaddr.un, address);</span><br><span class="line">...</span><br><span class="line">r = RET_NERRNO(connect(v-&gt;input_fd, &amp;sockaddr.sa, r));                       <span class="comment">/* L187 */</span></span><br><span class="line"><span class="keyword">if</span> (r &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!IN_SET(r, -EAGAIN, -EINPROGRESS))</span><br><span class="line">                <span class="keyword">return</span> log_debug_errno(r, <span class="string">&quot;Failed to connect to %s: %m&quot;</span>, address);</span><br><span class="line">        v-&gt;connecting = <span class="literal">true</span>;   <span class="comment">/* ← 异步连接标志 */</span></span><br><span class="line">&#125;</span><br><span class="line">varlink_set_state(v, VARLINK_IDLE_CLIENT);                                   <span class="comment">/* L204 */</span></span><br></pre></td></tr></table></figure>
+
+<p>三个关键细节:</p>
+<ol>
+<li>​<strong>​<code>SOCK_CLOEXEC|SOCK_NONBLOCK</code>​</strong>​:exec 时关闭(防止 fd 泄漏给子进程)、非阻塞(<code>connect()</code> 对 Unix socket 可能立即返回 EINPROGRESS)</li>
+<li>​<strong>​<code>fd_move_above_stdio()</code>​</strong> ​:把 fd 移到 ≥3 的位置,避免占用 stdin&#x2F;stdout&#x2F;stderr 槽位——后续 <code>exec</code> 子进程时标准流不被干扰</li>
+<li>​<strong>​<code>v-&gt;connecting</code>​</strong>​ <strong>标志</strong>:这是一个独立于 <code>VarlinkState</code>​ 的”传输层子状态”。<code>varlink-internal.h:90-114</code>​ 长篇注释解释了为什么需要它:状态机是”应用层”概念,而 <code>connecting</code>​ 是”传输层”细节。即使 <code>connect()</code> 未完成,也允许把消息入队,等连接就绪后自动发出。</li>
+</ol>
+<h3 id="4-3-NSS-模块的特殊考量"><a href="#4-3-NSS-模块的特殊考量" class="headerlink" title="4.3 NSS 模块的特殊考量"></a>4.3 NSS 模块的特殊考量</h3><p>NSS 模块是被加载进 <strong>每个进程</strong> 的共享库,设计上有几个约束在普通 Varlink 客户端里看不到:</p>
+<table>
+<thead>
+<tr>
+<th>约束</th>
+<th>nss-resolve 的应对</th>
+<th>源码位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>进程可能 setuid,不能信任环境</td>
+<td>用 <code>secure_getenv_bool</code>​ 读 <code>SYSTEMD_NSS_RESOLVE_*</code> 旗标</td>
+<td>​<code>nss-resolve.c:172-178</code></td>
+</tr>
+<tr>
+<td>libc 调用线程的 errno 必须保护</td>
+<td>​<code>PROTECT_ERRNO</code>​ &#x2F; <code>UNPROTECT_ERRNO</code> 宏对</td>
+<td>​<code>nss-resolve.c:204, 273</code></td>
+</tr>
+<tr>
+<td>调用结束必须关连接,不能持有</td>
+<td>​<code>_cleanup_(sd_varlink_unrefp)</code> RAII</td>
+<td>​<code>nss-resolve.c:198</code></td>
+</tr>
+<tr>
+<td>h_errno 是历史遗留全局变量,需显式重置</td>
+<td>​<code>*h_errnop = NETDB_SUCCESS; h_errno = 0;</code></td>
+<td>​<code>nss-resolve.c:323-324</code></td>
+</tr>
+<tr>
+<td>必须支持 buffer 不足时返回 TRYAGAIN</td>
+<td>检查 <code>buflen &lt; ms</code></td>
+<td>​<code>nss-resolve.c:272-277</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="第-5-章-同步-RPC-sd-varlink-call-的状态机"><a href="#第-5-章-同步-RPC-sd-varlink-call-的状态机" class="headerlink" title="第 5 章 同步 RPC:sd_varlink_call 的状态机"></a>第 5 章 同步 RPC:sd_varlink_call 的状态机</h2><p>NSS 模块调用 <code>sd_varlink_call(link, &quot;io.systemd.Resolve.ResolveHostname&quot;, ...)</code>​,这是一个<strong>同步阻塞</strong> API。但 sd-varlink 内部完全是异步的,sd_varlink_call 实际是把同步语义”叠”在异步状态机之上的包装。展开 <code>sd-varlink.c:2183-2271</code>​ 的 <code>sd_varlink_call_full()</code>:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">_public_ <span class="type">int</span> <span class="title function_">sd_varlink_call_full</span><span class="params">(sd_varlink *v, <span class="type">const</span> <span class="type">char</span> *method, ...)</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">        <span class="comment">/* 把请求 JSON 入队 */</span></span><br><span class="line">        r = sd_json_buildo(&amp;m,</span><br><span class="line">                        SD_JSON_BUILD_PAIR_STRING(<span class="string">&quot;method&quot;</span>, method),</span><br><span class="line">                        JSON_BUILD_PAIR_VARIANT_NON_EMPTY(<span class="string">&quot;parameters&quot;</span>, parameters));</span><br><span class="line">        r = varlink_enqueue_json(v, m);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 切到 CALLING 状态,挂起等待回复 */</span></span><br><span class="line">        varlink_set_state(v, VARLINK_CALLING);          <span class="comment">/* L2219 */</span></span><br><span class="line">        v-&gt;n_pending++;</span><br><span class="line">        v-&gt;timestamp = now(CLOCK_MONOTONIC);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* ★ 核心:用 polling 模拟事件循环 ★ */</span></span><br><span class="line">        <span class="keyword">while</span> (v-&gt;state == VARLINK_CALLING) &#123;</span><br><span class="line">                r = sd_varlink_process(v);               <span class="comment">/* L2224 */</span></span><br><span class="line">                <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">                <span class="keyword">if</span> (r &gt; <span class="number">0</span>) <span class="keyword">continue</span>;                      <span class="comment">/* 还有未处理的工作 */</span></span><br><span class="line"></span><br><span class="line">                r = sd_varlink_wait(v, USEC_INFINITY);    <span class="comment">/* L2230, 阻塞等 IO */</span></span><br><span class="line">                <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这是一个有趣的模式:<strong>NSS 模块没有事件循环,所以</strong> <strong>​<code>sd_varlink_call_full()</code>​</strong> ​ <strong>自己现造了一个最小的循环</strong>。循环里反复调用 <code>sd_varlink_process()</code>​(把所有未完成的工作推进一次),如果没工作可做就 <code>sd_varlink_wait()</code>​ 阻塞在 <code>poll()</code> 上等 socket 可读或可写。</p>
+<h3 id="5-1-varlink-enqueue-json-消息与-fd-的边界绑定"><a href="#5-1-varlink-enqueue-json-消息与-fd-的边界绑定" class="headerlink" title="5.1 varlink_enqueue_json:消息与 fd 的边界绑定"></a>5.1 varlink_enqueue_json:消息与 fd 的边界绑定</h3><p>请求 JSON 构造完之后,<code>varlink_enqueue_json()</code>​(<code>sd-varlink.c:1963-1988</code>)决定怎么把它放进输出队列:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">varlink_enqueue_json</span><span class="params">(sd_varlink *v, sd_json_variant *m)</span> &#123;</span><br><span class="line">        <span class="comment">/* 快速路径:没有 fd 要传、队列为空,直接写入 output_buffer */</span></span><br><span class="line">        <span class="keyword">if</span> (v-&gt;n_pushed_fds == <span class="number">0</span> &amp;&amp; !v-&gt;output_queue)</span><br><span class="line">                <span class="keyword">return</span> varlink_format_json(v, m);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (v-&gt;n_output_queue &gt;= VARLINK_QUEUE_MAX)  <span class="comment">/* 防 DoS */</span></span><br><span class="line">                <span class="keyword">return</span> -ENOBUFS;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 慢速路径:把消息和它关联的 fd 打包成一个 queue 节点 */</span></span><br><span class="line">        q = varlink_json_queue_item_new(m, v-&gt;pushed_fds, v-&gt;n_pushed_fds);</span><br><span class="line">        LIST_INSERT_AFTER(<span class="built_in">queue</span>, v-&gt;output_queue, v-&gt;output_queue_tail, q);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里有一个 <strong>fd 边界</strong> 问题:Varlink 协议规定 SCM_RIGHTS 传递的 fd 必须与某条消息绑定。如果两条消息都各自带 fd,不能简单地拼接到一个连续 buffer(否则 write 部分成功时 fd 会跨消息关联)。<code>VarlinkJsonQueueItem</code>​(<code>varlink-internal.h:77-82</code>)的存在就是为了绑定”一条 JSON 消息 + 它自己的 fd 数组”:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">VarlinkJsonQueueItem</span> &#123;</span></span><br><span class="line">        LIST_FIELDS(VarlinkJsonQueueItem, <span class="built_in">queue</span>);</span><br><span class="line">        sd_json_variant *data;</span><br><span class="line">        <span class="type">size_t</span> n_fds;</span><br><span class="line">        <span class="type">int</span> fds[];   <span class="comment">/* 柔性数组,与 data 一一绑定 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-2-sd-varlink-process-状态机的发动机"><a href="#5-2-sd-varlink-process-状态机的发动机" class="headerlink" title="5.2 sd_varlink_process:状态机的发动机"></a>5.2 sd_varlink_process:状态机的发动机</h3><p>​<code>sd_varlink_process()</code>​(<code>sd-varlink.c:1457-1538</code>)是整个协议的”心脏”,它的执行顺序设计得很讲究:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">_public_ <span class="type">int</span> <span class="title function_">sd_varlink_process</span><span class="params">(sd_varlink *v)</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">        r = varlink_write(v);             <span class="comment">/* 1. 先把待发数据写出去 */</span></span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">goto</span> finish;</span><br><span class="line"></span><br><span class="line">        r = varlink_dispatch_reply(v);    <span class="comment">/* 2. 处理已收到的回复(client) */</span></span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">goto</span> finish;</span><br><span class="line"></span><br><span class="line">        r = varlink_dispatch_method(v);   <span class="comment">/* 3. 处理已收到的方法调用(server) */</span></span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">goto</span> finish;</span><br><span class="line"></span><br><span class="line">        r = varlink_parse_message(v);     <span class="comment">/* 4. 从 input buffer 解析出一条 JSON */</span></span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">goto</span> finish;</span><br><span class="line"></span><br><span class="line">        r = varlink_read(v);              <span class="comment">/* 5. 从 socket 读新数据 */</span></span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">goto</span> finish;</span><br><span class="line"></span><br><span class="line">        r = varlink_test_disconnect(v);   <span class="comment">/* 6. 检查半关闭 */</span></span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>为什么是 “write → dispatch → parse → read” 这个顺序?<strong>先 write 是为了让回复尽快出去</strong>;dispatch 已解析的 JSON 优先于 read 新数据,是为了避免 buffer 堆积;read 放在最后,这样新数据进入 buffer 后,下一轮 <code>sd_varlink_process()</code> 才会被 parse_message 处理。整个序列保证每一轮 process() 最多完成一次”完整事务”。</p>
+<hr>
+<h2 id="第-6-章-服务端-accept-与-dispatch"><a href="#第-6-章-服务端-accept-与-dispatch" class="headerlink" title="第 6 章 服务端:accept 与 dispatch"></a>第 6 章 服务端:accept 与 dispatch</h2><p>现在跟踪请求 JSON 抵达服务端之后的旅程。socket 可读时,sd-event 触发 <code>io_callback</code>​(<code>sd-varlink.c:2941-2950</code>​),它调用 <code>handle_revents()</code>​ + <code>sd_varlink_process()</code>​。但这是已建立连接的回调。<strong>新连接</strong> 走的是另一个回调:<code>connect_callback</code>​(<code>sd-varlink.c:3567-3604</code>):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">connect_callback</span><span class="params">(sd_event_source *source, <span class="type">int</span> fd, <span class="type">uint32_t</span> revents, <span class="type">void</span> *userdata)</span> &#123;</span><br><span class="line">        VarlinkServerSocket *ss = ASSERT_PTR(userdata);</span><br><span class="line">        _cleanup_close_ <span class="type">int</span> cfd = -EBADF;</span><br><span class="line">        sd_varlink *v = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        cfd = accept4(fd, <span class="literal">NULL</span>, <span class="literal">NULL</span>, SOCK_NONBLOCK|SOCK_CLOEXEC);   <span class="comment">/* L3577 */</span></span><br><span class="line">        <span class="keyword">if</span> (cfd &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> (ERRNO_IS_ACCEPT_AGAIN(errno)) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">                <span class="keyword">return</span> varlink_server_log_errno(ss-&gt;server, errno, ...);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        r = sd_varlink_server_add_connection(ss-&gt;server, cfd, &amp;v);   <span class="comment">/* L3585 */</span></span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        TAKE_FD(cfd);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (ss-&gt;server-&gt;connect_callback)</span><br><span class="line">                r = ss-&gt;server-&gt;connect_callback(ss-&gt;server, v, ss-&gt;server-&gt;userdata);</span><br><span class="line">        ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 systemd-resolved <strong>没有设置 connect_callback</strong>(查看 <code>resolved-varlink.c:1492-1545</code>,只设置了 disconnect 回调),所以新连接进入后立即开始接受请求。这是合理的:DNS 查询是无状态请求,无需在连接建立时做认证。</p>
+<h3 id="6-1-安全检查-per-UID-配额"><a href="#6-1-安全检查-per-UID-配额" class="headerlink" title="6.1 安全检查:per-UID 配额"></a>6.1 安全检查:per-UID 配额</h3><p>虽然没设 connect 回调,服务端创建时启用了 <code>SD_VARLINK_SERVER_ACCOUNT_UID</code>​(<code>resolved-varlink.c:1501</code>​)。<code>sd_varlink_server_add_connection_pair()</code>​(<code>sd-varlink.c:3466-3553</code>)在 accept 之后会做:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">r = getpeercred(input_fd, &amp;ucred);          <span class="comment">/* L3490,内核保证可信 */</span></span><br><span class="line">...</span><br><span class="line">r = validate_connection(server, &amp;ucred);    <span class="comment">/* L3497 */</span></span><br><span class="line">...</span><br><span class="line">r = count_connection(server, &amp;ucred);       <span class="comment">/* L3509 */</span></span><br></pre></td></tr></table></figure>
+
+<p>​<code>validate_connection()</code>​(<code>sd-varlink.c:3395-3435</code>)执行三道闸:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (server-&gt;n_connections &gt;= server-&gt;connections_max) &#123;       <span class="comment">/* 默认 4096 */</span></span><br><span class="line">        varlink_server_log(server, <span class="string">&quot;Connection limit ...&quot;</span>); <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (FLAGS_SET(server-&gt;flags, SD_VARLINK_SERVER_ACCOUNT_UID)) &#123;</span><br><span class="line">        <span class="type">unsigned</span> c = PTR_TO_UINT(hashmap_get(server-&gt;by_uid, UID_TO_PTR(ucred-&gt;uid)));</span><br><span class="line">        <span class="keyword">if</span> (c &gt;= server-&gt;connections_per_uid_max) &#123;            <span class="comment">/* 默认 128 */</span></span><br><span class="line">                varlink_server_log(server, <span class="string">&quot;Per-UID limit ...&quot;</span>); <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这两层防护防的是本地恶意进程通过打开海量连接耗尽 resolved 资源。<code>getpeercred()</code>​ 利用内核的 <code>SO_PEERCRED</code>(Linux)在 connect 时刻固化对端 PID&#x2F;UID&#x2F;GID,之后即使对端 fork 也无法伪造。</p>
+<h3 id="6-2-dispatch-method-JSON-落到-C-回调"><a href="#6-2-dispatch-method-JSON-落到-C-回调" class="headerlink" title="6.2 dispatch_method:JSON 落到 C 回调"></a>6.2 dispatch_method:JSON 落到 C 回调</h3><p>请求字节通过 <code>varlink_read()</code>​ → <code>varlink_parse_message()</code>​ 进入 <code>v-&gt;current</code>​(一个 <code>sd_json_variant *</code>​),随后 <code>varlink_dispatch_method()</code>​(<code>sd-varlink.c:1277-1455</code>)把它翻译成 C 调用。这个函数是整个 sd-varlink 里最复杂的一个(179 行,圈复杂度 45),核心逻辑可拆为四步:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">varlink_dispatch_method</span><span class="params">(sd_varlink *v)</span> &#123;</span><br><span class="line">        <span class="comment">/* 步骤 1:解析 JSON 顶层字段,只允许 method/parameters/oneway/more */</span></span><br><span class="line">        JSON_VARIANT_OBJECT_FOREACH(k, e, v-&gt;current) &#123;</span><br><span class="line">                <span class="keyword">if</span> (streq(k, <span class="string">&quot;method&quot;</span>)) method = sd_json_variant_string(e);</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (streq(k, <span class="string">&quot;parameters&quot;</span>)) parameters = sd_json_variant_ref(e);</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (streq(k, <span class="string">&quot;oneway&quot;</span>)) flags |= SD_VARLINK_METHOD_ONEWAY;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (streq(k, <span class="string">&quot;more&quot;</span>))   flags |= SD_VARLINK_METHOD_MORE;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">goto</span> invalid;  <span class="comment">/* 未知字段 → 协议错误 */</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 步骤 2:根据 more/oneway 切到对应处理状态 */</span></span><br><span class="line">        varlink_set_state(v,</span><br><span class="line">                (flags &amp; SD_VARLINK_METHOD_MORE)   ? VARLINK_PROCESSING_METHOD_MORE :</span><br><span class="line">                (flags &amp; SD_VARLINK_METHOD_ONEWAY) ? VARLINK_PROCESSING_METHOD_ONEWAY :</span><br><span class="line">                                                     VARLINK_PROCESSING_METHOD);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 步骤 3:查方法表,先查用户注册的,再查两个通用 method */</span></span><br><span class="line">        callback = hashmap_get(v-&gt;server-&gt;methods, method);</span><br><span class="line">        <span class="keyword">if</span> (!callback) &#123;</span><br><span class="line">                <span class="keyword">if</span> (streq(method, <span class="string">&quot;org.varlink.service.GetInfo&quot;</span>))</span><br><span class="line">                        callback = generic_method_get_info;</span><br><span class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (streq(method, <span class="string">&quot;org.varlink.service.GetInterfaceDescription&quot;</span>))</span><br><span class="line">                        callback = generic_method_get_interface_description;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 步骤 4:IDL 校验参数,然后调用用户回调 */</span></span><br><span class="line">        <span class="keyword">if</span> (callback) &#123;</span><br><span class="line">                v-&gt;current_method = hashmap_get(v-&gt;server-&gt;symbols, method);</span><br><span class="line">                <span class="keyword">if</span> (v-&gt;current_method)</span><br><span class="line">                        r = varlink_idl_validate_method_call(v-&gt;current_method,</span><br><span class="line">                                                              parameters, flags, &amp;bad_field);</span><br><span class="line">                ...</span><br><span class="line">                r = callback(v, parameters, flags, v-&gt;userdata);   <span class="comment">/* ← 真正干活 */</span></span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对我们跟踪的 <code>io.systemd.Resolve.ResolveHostname</code>​ 来说,callback 就是 <code>vl_method_resolve_hostname</code>。</p>
+<hr>
+<h2 id="第-7-章-DNS-查询的异步触发"><a href="#第-7-章-DNS-查询的异步触发" class="headerlink" title="第 7 章 DNS 查询的异步触发"></a>第 7 章 DNS 查询的异步触发</h2><p>​<code>vl_method_resolve_hostname()</code>​(<code>resolved-varlink.c:342-410</code>)是一个典型的”参数校验 + 启动查询 + 返回 1(表示稍后回复)”模式:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">vl_method_resolve_hostname</span><span class="params">(sd_varlink *link, sd_json_variant *parameters, ...)</span> &#123;</span><br><span class="line">        <span class="type">static</span> <span class="type">const</span> sd_json_dispatch_field dispatch_table[] = &#123;</span><br><span class="line">                &#123; <span class="string">&quot;ifindex&quot;</span>, ..., json_dispatch_ifindex,        offsetof(LookupParameters, ifindex), SD_JSON_RELAX     &#125;,</span><br><span class="line">                &#123; <span class="string">&quot;name&quot;</span>,    ..., sd_json_dispatch_const_string, offsetof(LookupParameters, name),    SD_JSON_MANDATORY &#125;,</span><br><span class="line">                &#123; <span class="string">&quot;family&quot;</span>,  ..., sd_json_dispatch_int,          offsetof(LookupParameters, family),  <span class="number">0</span>                 &#125;,</span><br><span class="line">                &#123; <span class="string">&quot;flags&quot;</span>,   ..., sd_json_dispatch_uint64,       offsetof(LookupParameters, flags),   <span class="number">0</span>                 &#125;,</span><br><span class="line">                &#123;&#125;</span><br><span class="line">        &#125;;</span><br><span class="line">        _cleanup_(dns_query_freep) DnsQuery *q = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 1. 用 sd_varlink_dispatch 把 JSON 字段填进 LookupParameters 结构 */</span></span><br><span class="line">        r = sd_varlink_dispatch(link, parameters, dispatch_table, &amp;p);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 2. 快速路径:如果是字面量 IP 直接合成答案,完全不查网络 */</span></span><br><span class="line">        r = parse_as_address(link, &amp;p);</span><br><span class="line">        <span class="keyword">if</span> (r != <span class="number">0</span>) <span class="keyword">return</span> r;   <span class="comment">/* 已回复 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 3. 构造 DNS question(A/AAAA + IDNA 编码) */</span></span><br><span class="line">        r = dns_question_new_address(&amp;question_utf8, p.family, p.name, <span class="literal">false</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 4. 创建 DnsQuery 对象 */</span></span><br><span class="line">        r = dns_query_new_for_varlink(m, &amp;q, question_utf8, ...);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* ★ 5. 关键:把 varlink link 关联到 query,设好完成回调 */</span></span><br><span class="line">        q-&gt;varlink_request = sd_varlink_ref(link);          <span class="comment">/* L399 */</span></span><br><span class="line">        sd_varlink_set_userdata(link, q);                   <span class="comment">/* L400 */</span></span><br><span class="line">        q-&gt;complete = vl_method_resolve_hostname_complete;  <span class="comment">/* L402 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 6. 启动 DNS 查询(可能发多个 DNS 包:多服务器、A+AAAA) */</span></span><br><span class="line">        r = dns_query_go(q);</span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> r;</span><br><span class="line"></span><br><span class="line">        TAKE_PTR(q);   <span class="comment">/* query 的所有权移交给 manager */</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;       <span class="comment">/* ★ 告诉 sd_varlink_dispatch_method:不要现在回 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后那个 <code>return 1</code>​ 是关键。<code>varlink_dispatch_method()</code>​(<code>sd-varlink.c:1421-1442</code>)根据当前状态决定下一步:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (v-&gt;state) &#123;</span><br><span class="line"><span class="keyword">case</span> VARLINK_PROCESSED_METHOD:    <span class="comment">/* 已被 reply/error */</span></span><br><span class="line">        varlink_clear_current(v);</span><br><span class="line">        varlink_set_state(v, VARLINK_IDLE_SERVER);</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line"><span class="keyword">case</span> VARLINK_PROCESSING_METHOD:   <span class="comment">/* 未立即回复,稍后回 */</span></span><br><span class="line">        varlink_set_state(v, VARLINK_PENDING_METHOD);   <span class="comment">/* ← 走这条 */</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>VARLINK_PENDING_METHOD</code>​ 状态意味着:这条连接的 method 调用正在等外部事件(DNS 服务器响应),Varlink 状态机释放对它的占用,sd-event 转去处理其他连接。<strong>连接和查询通过</strong> <strong>​<code>sd_varlink_ref(link)</code>​</strong> ​ <strong>互相锚定</strong>:link 持有 query 引用,query 也持有 link 引用。这种双向引用靠 <code>vl_on_disconnect</code> 回调清理(见第 9 章)。</p>
+<h3 id="7-1-parse-as-address-绕过网络的优化"><a href="#7-1-parse-as-address-绕过网络的优化" class="headerlink" title="7.1 parse_as_address:绕过网络的优化"></a>7.1 parse_as_address:绕过网络的优化</h3><p>值得专门讲一下 <code>parse_as_address</code>​(<code>resolved-varlink.c:304-340</code>),它是 systemd-resolved 的一个小而美的优化:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">parse_as_address</span><span class="params">(sd_varlink *link, LookupParameters *p)</span> &#123;</span><br><span class="line">        <span class="comment">/* 检查 name 是否其实是字面量 IP 地址 */</span></span><br><span class="line">        r = in_addr_ifindex_from_string_auto(p-&gt;name, &amp;ff, &amp;parsed, &amp;parsed_ifindex);</span><br><span class="line">        <span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;   <span class="comment">/* 不是字面量 IP,走正常 DNS 路径 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 是字面量 IP,直接合成答案,不查网络、不查缓存 */</span></span><br><span class="line">        <span class="keyword">return</span> sd_varlink_replybo(link,</span><br><span class="line">                        SD_JSON_BUILD_PAIR(<span class="string">&quot;addresses&quot;</span>,</span><br><span class="line">                                SD_JSON_BUILD_ARRAY(SD_JSON_BUILD_OBJECT(</span><br><span class="line">                                        SD_JSON_BUILD_PAIR_INTEGER(<span class="string">&quot;family&quot;</span>, ff),</span><br><span class="line">                                        SD_JSON_BUILD_PAIR_BYTE_ARRAY(<span class="string">&quot;address&quot;</span>, &amp;parsed, ...)))),</span><br><span class="line">                        SD_JSON_BUILD_PAIR_STRING(<span class="string">&quot;name&quot;</span>, canonical),</span><br><span class="line">                        SD_JSON_BUILD_PAIR_INTEGER(<span class="string">&quot;flags&quot;</span>, ...|SD_RESOLVED_SYNTHETIC));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当用户请求 <code>gethostbyname(&quot;127.0.0.1&quot;)</code>​ 时,根本不需要发 DNS 查询,直接合成回复。这避免了不必要的网络流量和延迟。<code>SD_RESOLVED_SYNTHETIC</code> 标志告诉客户端这个答案是合成的。</p>
+<hr>
+<h2 id="第-8-章-回复路径-从-DNS-响应到-Varlink-JSON"><a href="#第-8-章-回复路径-从-DNS-响应到-Varlink-JSON" class="headerlink" title="第 8 章 回复路径:从 DNS 响应到 Varlink JSON"></a>第 8 章 回复路径:从 DNS 响应到 Varlink JSON</h2><p>DNS 查询完成时(无论成功、超时、DNSSEC 失败),DNS 子系统回调 <code>q-&gt;complete</code>​,即 <code>vl_method_resolve_hostname_complete()</code>​(<code>resolved-varlink.c:254-302</code>):</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">vl_method_resolve_hostname_complete</span><span class="params">(DnsQuery *query)</span> &#123;</span><br><span class="line">        _cleanup_(dns_query_freep) DnsQuery *q = query;</span><br><span class="line">        _cleanup_(sd_json_variant_unrefp) sd_json_variant *<span class="built_in">array</span> = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (q-&gt;state != DNS_TRANSACTION_SUCCESS)</span><br><span class="line">                <span class="keyword">return</span> (<span class="type">void</span>) reply_query_state(q);   <span class="comment">/* 把 DNS 错误映射成 varlink error */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 处理 CNAME 链 */</span></span><br><span class="line">        r = dns_query_process_cname_many(q);</span><br><span class="line">        <span class="keyword">if</span> (r == DNS_QUERY_CNAME) &#123; TAKE_PTR(q); <span class="keyword">return</span>; &#125;  <span class="comment">/* 查询被重启 */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 遍历答案 RR,把 A/AAAA 记录装进 JSON 数组 */</span></span><br><span class="line">        r = find_addr_records(&amp;<span class="built_in">array</span>, question, q, &amp;canonical, ...);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (sd_json_variant_is_blank_object(<span class="built_in">array</span>))</span><br><span class="line">                <span class="keyword">return</span> (<span class="type">void</span>) sd_varlink_error(q-&gt;varlink_request,</span><br><span class="line">                                <span class="string">&quot;io.systemd.Resolve.NoSuchResourceRecord&quot;</span>, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* ★ 发送最终回复 */</span></span><br><span class="line">        r = sd_varlink_replybo(q-&gt;varlink_request,</span><br><span class="line">                        SD_JSON_BUILD_PAIR_VARIANT(<span class="string">&quot;addresses&quot;</span>, <span class="built_in">array</span>),</span><br><span class="line">                        SD_JSON_BUILD_PAIR_STRING(<span class="string">&quot;name&quot;</span>, normalized),</span><br><span class="line">                        SD_JSON_BUILD_PAIR_INTEGER(<span class="string">&quot;flags&quot;</span>, dns_query_reply_flags_make(q)));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>sd_varlink_replybo</code>​(<code>sd-varlink.c:2548-2563</code>​)是 <code>sd_varlink_reply</code>​ 的可变参数便捷版。<code>sd_varlink_reply</code>​(<code>sd-varlink.c:2502-2546</code>)做的事:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">_public_ <span class="type">int</span> <span class="title function_">sd_varlink_reply</span><span class="params">(sd_varlink *v, sd_json_variant *parameters)</span> &#123;</span><br><span class="line">        <span class="comment">/* IDL 校验:回复也要符合接口契约! */</span></span><br><span class="line">        <span class="keyword">if</span> (v-&gt;current_method) &#123;</span><br><span class="line">                r = varlink_idl_validate_method_reply(v-&gt;current_method,</span><br><span class="line">                                                       parameters, <span class="number">0</span>, &amp;bad_field);</span><br><span class="line">                <span class="comment">/* 校验失败仅记日志,不阻断(避免服务因 bug 卡死客户端) */</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 把 &#123;&quot;parameters&quot;: &#123;...&#125;&#125; 入队 */</span></span><br><span class="line">        r = sd_json_buildo(&amp;m, JSON_BUILD_PAIR_VARIANT_NON_EMPTY(<span class="string">&quot;parameters&quot;</span>, parameters));</span><br><span class="line">        r = varlink_enqueue_json(v, m);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 因为我们处于 PENDING_METHOD 状态(异步回复),要切回 IDLE */</span></span><br><span class="line">        <span class="keyword">if</span> (IN_SET(v-&gt;state, VARLINK_PENDING_METHOD, VARLINK_PENDING_METHOD_MORE)) &#123;</span><br><span class="line">                varlink_clear_current(v);</span><br><span class="line">                varlink_set_state(v, VARLINK_IDLE_SERVER);    <span class="comment">/* L2539 */</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 <strong>IDL 校验 reply 的设计</strong>:服务端发的回复也要符合接口契约。如果 <code>vl_method_resolve_hostname_complete</code>​ 不小心构造了不合法的 JSON,<code>varlink_idl_validate_method_reply</code> 会记日志但不阻断发送——这是为了一个 bug 不会让客户端永久挂起。代码注释里特意写了 “Please adjust test&#x2F;units&#x2F;end.sh when updating the log message” 提醒不要改这个文案,因为有测试在 grep 它。</p>
+<h3 id="8-1-varlink-write-数据真正发出去"><a href="#8-1-varlink-write-数据真正发出去" class="headerlink" title="8.1 varlink_write:数据真正发出去"></a>8.1 varlink_write:数据真正发出去</h3><p>回到 <code>sd_varlink_process()</code>​ 的循环,下一次轮询时 <code>varlink_write()</code>​(<code>sd-varlink.c:721-809</code>​)会真正把 <code>output_buffer</code> 写到 socket:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">int</span> <span class="title function_">varlink_write</span><span class="params">(sd_varlink *v)</span> &#123;</span><br><span class="line">        ...</span><br><span class="line">        r = varlink_format_queue(v);          <span class="comment">/* 把 queue 里的 JSON 落入 buffer */</span></span><br><span class="line">        <span class="keyword">if</span> (v-&gt;output_buffer_size == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (v-&gt;n_output_fds &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="comment">/* 带 fd:必须用 sendmsg + SCM_RIGHTS */</span></span><br><span class="line">                <span class="class"><span class="keyword">struct</span> <span class="title">msghdr</span> <span class="title">mh</span> =</span> &#123; ... &#125;;</span><br><span class="line">                mh.msg_control = alloca0(mh.msg_controllen);</span><br><span class="line">                <span class="class"><span class="keyword">struct</span> <span class="title">cmsghdr</span> *<span class="title">control</span> =</span> CMSG_FIRSTHDR(&amp;mh);</span><br><span class="line">                control-&gt;cmsg_type = SCM_RIGHTS;</span><br><span class="line">                <span class="built_in">memcpy</span>(CMSG_DATA(control), v-&gt;output_fds, ...);</span><br><span class="line">                n = sendmsg(v-&gt;output_fd, &amp;mh, MSG_DONTWAIT|MSG_NOSIGNAL);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">/* 无 fd:优先 send() 带 MSG_NOSIGNAL,失败回退 write() */</span></span><br><span class="line">                n = send(v-&gt;output_fd, v-&gt;output_buffer + v-&gt;output_buffer_index,</span><br><span class="line">                         v-&gt;output_buffer_size, MSG_DONTWAIT|MSG_NOSIGNAL);</span><br><span class="line">        &#125;</span><br><span class="line">        ...</span><br><span class="line">        close_many(v-&gt;output_fds, v-&gt;n_output_fds);   <span class="comment">/* 发出后立即关闭本地副本 */</span></span><br><span class="line">        v-&gt;n_output_fds = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>MSG_NOSIGNAL</code>​ 是必须的:如果对端已关闭连接,<code>write</code>​ 会触发 SIGPIPE 把进程杀掉。NSS 模块加载在 libc 进程里,SIGPIPE 是绝对不能有的。<code>MSG_NOSIGNAL</code>​ 把这种情形转换成 <code>EPIPE</code> errno,由代码处理。</p>
+<hr>
+<h2 id="第-9-章-错误传播与-NSS-状态映射"><a href="#第-9-章-错误传播与-NSS-状态映射" class="headerlink" title="第 9 章 错误传播与 NSS 状态映射"></a>第 9 章 错误传播与 NSS 状态映射</h2><h3 id="9-1-varlink-error-→-errno"><a href="#9-1-varlink-error-→-errno" class="headerlink" title="9.1 varlink error → errno"></a>9.1 varlink error → errno</h3><p>DNS 查询失败时,<code>reply_query_state()</code>​(<code>resolved-varlink.c:86-155</code>)把 DNS 子系统的内部状态映射成结构化的 varlink error。映射表很完整:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (q-&gt;state) &#123;</span><br><span class="line"><span class="keyword">case</span> DNS_TRANSACTION_NO_SERVERS:</span><br><span class="line">        <span class="keyword">return</span> sd_varlink_error(q-&gt;varlink_request,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.NoNameServers&quot;</span>, <span class="literal">NULL</span>);</span><br><span class="line"><span class="keyword">case</span> DNS_TRANSACTION_TIMEOUT:</span><br><span class="line">        <span class="keyword">return</span> sd_varlink_error(q-&gt;varlink_request,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.QueryTimedOut&quot;</span>, <span class="literal">NULL</span>);</span><br><span class="line"><span class="keyword">case</span> DNS_TRANSACTION_DNSSEC_FAILED:</span><br><span class="line">        <span class="keyword">return</span> sd_varlink_errorbo(q-&gt;varlink_request,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.DNSSECValidationFailed&quot;</span>,</span><br><span class="line">                SD_JSON_BUILD_PAIR_STRING(<span class="string">&quot;result&quot;</span>,</span><br><span class="line">                        dnssec_result_to_string(q-&gt;answer_dnssec_result)),</span><br><span class="line">                SD_JSON_BUILD_PAIR_CONDITION(q-&gt;answer_ede_rcode &gt;= <span class="number">0</span>,</span><br><span class="line">                        <span class="string">&quot;extendedDNSErrorCode&quot;</span>, SD_JSON_BUILD_INTEGER(q-&gt;answer_ede_rcode)),</span><br><span class="line">                ...);</span><br><span class="line"><span class="keyword">case</span> DNS_TRANSACTION_RCODE_FAILURE:</span><br><span class="line">        <span class="keyword">return</span> sd_varlink_errorbo(q-&gt;varlink_request,</span><br><span class="line">                <span class="string">&quot;io.systemd.Resolve.DNSError&quot;</span>,</span><br><span class="line">                SD_JSON_BUILD_PAIR_INTEGER(<span class="string">&quot;rcode&quot;</span>, q-&gt;answer_rcode),</span><br><span class="line">                ...);</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注意 DNSSEC 错误带了结构化字段(<code>result</code>​、<code>extendedDNSErrorCode</code>​、<code>extendedDNSErrorMessage</code>​),客户端可以精确知道是哪个验证环节失败。这是 Varlink 相比 D-Bus 的优势之一:<strong>错误也是结构化数据</strong>,而不是一个字符串。</p>
+<h3 id="9-2-varlink-error-→-NSS-状态"><a href="#9-2-varlink-error-→-NSS-状态" class="headerlink" title="9.2 varlink error → NSS 状态"></a>9.2 varlink error → NSS 状态</h3><p>回到客户端 NSS 模块。<code>nss-resolve.c:230-241</code> 收到 error_id 后做映射:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">r = sd_varlink_call(link, <span class="string">&quot;io.systemd.Resolve.ResolveHostname&quot;</span>,</span><br><span class="line">                    cparams, &amp;rparams, &amp;error_id);</span><br><span class="line"><span class="keyword">if</span> (r &lt; <span class="number">0</span>) <span class="keyword">goto</span> fail;</span><br><span class="line"><span class="keyword">if</span> (!isempty(error_id)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (error_shall_try_again(error_id)) <span class="keyword">goto</span> try_again;   <span class="comment">/* → NSS_STATUS_TRYAGAIN */</span></span><br><span class="line">        <span class="keyword">if</span> (error_shall_fallback(error_id)) <span class="keyword">goto</span> fail;          <span class="comment">/* → NSS_STATUS_UNAVAIL */</span></span><br><span class="line">        <span class="keyword">if</span> (streq(error_id, <span class="string">&quot;io.systemd.Resolve.NoSuchResourceRecord&quot;</span>)) <span class="keyword">goto</span> no_data;</span><br><span class="line">        <span class="keyword">goto</span> not_found;                                          <span class="comment">/* → NSS_STATUS_NOTFOUND */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​<code>error_shall_fallback</code>​(<code>nss-resolve.c:25-36</code>​)和 <code>error_shall_try_again</code>​(<code>nss-resolve.c:38-46</code>)定义了三类错误:</p>
+<table>
+<thead>
+<tr>
+<th>varlink error</th>
+<th>NSS 状态</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>​<code>Disconnected</code>​&#x2F;<code>Timeout</code>​&#x2F;<code>Protocol</code>​&#x2F;<code>InterfaceNotFound</code>​&#x2F;<code>MethodNotFound</code>​&#x2F;<code>MethodNotImplemented</code></td>
+<td>​<code>NSS_STATUS_UNAVAIL</code></td>
+<td>resolved 没回应或协议坏了,libc 应继续尝试 nsswitch.conf 里下一个模块</td>
+</tr>
+<tr>
+<td>​<code>NoNameServers</code>​&#x2F;<code>QueryTimedOut</code>​&#x2F;<code>MaxAttemptsReached</code>​&#x2F;<code>NetworkDown</code></td>
+<td>​<code>NSS_STATUS_TRYAGAIN</code></td>
+<td>暂时性失败,libc 应该重试</td>
+</tr>
+<tr>
+<td>其他所有(包括 <code>DNSSECValidationFailed</code>​、<code>DNSError</code>​、<code>CNAMELoop</code> 等)</td>
+<td>​<code>NSS_STATUS_NOTFOUND</code></td>
+<td>名字确实查不到</td>
+</tr>
+<tr>
+<td>​<code>NoSuchResourceRecord</code></td>
+<td>​<code>NSS_STATUS_NOTFOUND</code>​ + <code>NO_DATA</code></td>
+<td>NXDOMAIN-like</td>
+</tr>
+</tbody></table>
+<p>这个区分很重要:<code>NSS_STATUS_UNAVAIL</code>​ 会让 libc 继续尝试下一个模块(比如 <code>dns</code>​),用户最终能拿到答案;<code>NSS_STATUS_NOTFOUND</code>​ 则会让 libc 终止查找链(防止 <code>dns</code> 模块又查一次同样的失败名字)。</p>
+<h3 id="9-3-vl-on-disconnect-客户端消失时清理查询"><a href="#9-3-vl-on-disconnect-客户端消失时清理查询" class="headerlink" title="9.3 vl_on_disconnect:客户端消失时清理查询"></a>9.3 vl_on_disconnect:客户端消失时清理查询</h3><p>最后一个常被忽略的细节。如果客户端在 DNS 查询完成前就关闭了 socket(NSS 模块加载在调用进程里,进程崩了),resolved 不应该继续浪费资源查 DNS。这就是 <code>vl_on_disconnect</code>​(<code>resolved-varlink.c:157-180</code>)的作用:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">vl_on_disconnect</span><span class="params">(sd_varlink_server *s, sd_varlink *link, <span class="type">void</span> *userdata)</span> &#123;</span><br><span class="line">        Manager *m = sd_varlink_server_get_userdata(s);</span><br><span class="line">        ...</span><br><span class="line">        q = sd_varlink_get_userdata(link);   <span class="comment">/* 取出 link 上挂的 query */</span></span><br><span class="line">        <span class="keyword">if</span> (!q) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!DNS_TRANSACTION_IS_LIVE(q-&gt;state))</span><br><span class="line">                <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        log_debug(<span class="string">&quot;Client of active query vanished, aborting query.&quot;</span>);</span><br><span class="line">        dns_query_complete(q, DNS_TRANSACTION_ABORTED);   <span class="comment">/* ← 中止查询 */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>回看第 7 章 <code>vl_method_resolve_hostname</code>​ 里 <code>sd_varlink_set_userdata(link, q)</code> 的设置——这个双向锚定的另一半就是给 disconnect 回调用的。整个生命周期管理靠两个 ref 形成”环”,环的解开发生在两个对称点:</p>
+<ul>
+<li>query 完成 → <code>sd_varlink_reply</code>​ 把状态切回 <code>IDLE_SERVER</code> → disconnect 回调不会被触发</li>
+<li>客户端消失 → disconnect 回调 → <code>dns_query_complete(ABORTED)</code> → query 释放 → link 引用计数减 1</li>
+</ul>
+<hr>
+<h2 id="第-10-章-端到端时序-把所有章节串起来"><a href="#第-10-章-端到端时序-把所有章节串起来" class="headerlink" title="第 10 章 端到端时序:把所有章节串起来"></a>第 10 章 端到端时序:把所有章节串起来</h2><p>把前面各章的步骤串起来,一次完整的 <code>gethostbyname(&quot;example.com&quot;)</code> 经 varlink 的旅程如下:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">时刻   进程                操作                                    源码位置</span><br><span class="line">─────  ──────────────────  ─────────────────────────────────────  ─────────────────────</span><br><span class="line"> t0    应用                getaddrinfo(&quot;example.com&quot;)              libc</span><br><span class="line"> t1    应用(NSS)          _nss_resolve_gethostbyname4_r 入口      nss-resolve.c:191</span><br><span class="line"> t2    应用(NSS)          connect_to_resolved                     nss-resolve.c:48</span><br><span class="line"> t3    应用(内核)         connect() → AF_UNIX                     sd-varlink.c:187</span><br><span class="line"> t4    resolved(event)     EPOLLIN on listen fd                   sd-varlink.c:3624</span><br><span class="line"> t5    resolved            accept4 → new connection fd            sd-varlink.c:3577</span><br><span class="line"> t6    resolved            validate_connection (UID 检查)          sd-varlink.c:3497</span><br><span class="line"> t7    应用(NSS)          sd_json_buildo 构造请求                 nss-resolve.c:217</span><br><span class="line"> t8    应用(NSS)          sd_varlink_call → state=CALLING         sd-varlink.c:2219</span><br><span class="line"> t9    应用(NSS)          sd_varlink_process → varlink_write      sd-varlink.c:1467</span><br><span class="line">t10    应用(内核)         send() 把 JSON 字节写入 socket</span><br><span class="line">t11    resolved(event)     EPOLLIN on connection fd               io_callback</span><br><span class="line">t12    resolved            varlink_read → recv()                  sd-varlink.c:883</span><br><span class="line">t13    resolved            varlink_parse_message → sd_json_parse  sd-varlink.c:978</span><br><span class="line">t14    resolved            varlink_dispatch_method                sd-varlink.c:1277</span><br><span class="line">t15    resolved            IDL validate (符号校验)                 sd-varlink-idl.c</span><br><span class="line">t16    resolved            vl_method_resolve_hostname             resolved-varlink.c:342</span><br><span class="line">t17    resolved            dns_query_new + dns_query_go           resolved-varlink.c:395,404</span><br><span class="line">                            ↓ (状态切到 PENDING_METHOD,让出事件循环)</span><br><span class="line">t18    resolved(event)     处理其他连接 / 等 DNS 回复</span><br><span class="line">t19    resolved(内核)     收到 DNS 响应包,触发 dns_transaction</span><br><span class="line">t20    resolved            q-&gt;complete = vl_method_resolve_hostname_complete</span><br><span class="line">                                                             resolved-varlink.c:254</span><br><span class="line">t21    resolved            find_addr_records → JSON 数组          resolved-varlink.c:205</span><br><span class="line">t22    resolved            sd_varlink_replybo                     resolved-varlink.c:292</span><br><span class="line">                            ↓ (状态切到 PROCESSED_METHOD → IDLE_SERVER)</span><br><span class="line">t23    resolved(event)     varlink_write → send()                 sd-varlink.c:721</span><br><span class="line">t24    应用(NSS)          EPOLLIN,被 sd_varlink_wait 唤醒        sd-varlink.c:1690</span><br><span class="line">t25    应用(NSS)          varlink_read → recv()                  sd-varlink.c:883</span><br><span class="line">t26    应用(NSS)          varlink_parse_message                  sd-varlink.c:978</span><br><span class="line">t27    应用(NSS)          varlink_dispatch_reply → state=CALLED   sd-varlink.c:1189</span><br><span class="line">t28    应用(NSS)          sd_varlink_call_full 从循环返回         sd-varlink.c:2237</span><br><span class="line">t29    应用(NSS)          sd_json_dispatch 解析 reply            nss-resolve.c:243</span><br><span class="line">t30    应用(NSS)          填充 struct gaih_addrtuple              nss-resolve.c:298</span><br><span class="line">t31    应用(NSS)          return NSS_STATUS_SUCCESS              nss-resolve.c:326</span><br><span class="line">t32    应用                getaddrinfo 返回,libc 继续业务</span><br></pre></td></tr></table></figure>
+
+<p>t17 → t20 之间是整个链路唯一真正的异步等待窗口(等待上游 DNS 服务器)。在这段窗口里,客户端 NSS 模块在 <code>sd_varlink_wait</code>​ 的 <code>poll()</code>​ 中阻塞,服务端 resolved 在 sd-event 循环里继续服务其他客户端。这是 Varlink 同步 RPC 模型最大的代价:<strong>客户端调用线程被完全占用</strong>,但好处是 NSS 模块代码极简,无需理解事件循环。</p>
+<hr>
+<h2 id="第-11-章-设计哲学与总结"><a href="#第-11-章-设计哲学与总结" class="headerlink" title="第 11 章 设计哲学与总结"></a>第 11 章 设计哲学与总结</h2><h3 id="11-1-三个核心设计原则"><a href="#11-1-三个核心设计原则" class="headerlink" title="11.1 三个核心设计原则"></a>11.1 三个核心设计原则</h3><p><strong>原则 1:协议极简,状态机丰富</strong></p>
+<p>Varlink 协议本身只有”JSON 消息 + NUL 分隔 + 可选 SCM_RIGHTS”——三个要素。但 <code>sd_varlink</code>​ 内部用 21 个状态来精细管理连接生命周期(<code>varlink-internal.h:11-41</code>)。这种”协议瘦、实现厚”的设计让客户端实现可以很简单(只需懂 JSON 即可),而把复杂性集中在一个被反复验证的库内。</p>
+<p><strong>原则 2:同步语义,异步实现</strong></p>
+<p>NSS 模块是同步 API(<code>_nss_resolve_gethostbyname4_r</code>​ 必须返回 <code>enum nss_status</code>​),但 sd-varlink 内部完全异步。<code>sd_varlink_call_full</code>​(<code>sd-varlink.c:2183</code>​)用 <code>while + process + wait</code> 循环把异步状态机”翻译”成同步阻塞调用,而无需动用线程。这是个很经典的设计,值得在任何”需要把异步库暴露给同步 API”的场景借鉴。</p>
+<p><strong>原则 3:资源生命周期用双向 ref + disconnect 回调</strong></p>
+<p>第 7 章和第 9 章展示了 varlink link 和 DnsQuery 的互相引用:link 引用 query(在 <code>q-&gt;varlink_request</code>​),query 引用 link(在 <code>sd_varlink_set_userdata</code>​)。这种环看似危险,实际通过 <code>vl_on_disconnect</code> 回调提供了单向”切断”机制:无论客户端何时消失,query 都会被 abort 并释放,环就被解开。这是 systemd 处理”跨子系统对象生命周期”的标准模式。</p>
+<h3 id="11-2-核心洞察"><a href="#11-2-核心洞察" class="headerlink" title="11.2 核心洞察"></a>11.2 核心洞察</h3><blockquote>
+<p><strong>io.systemd.Resolve 这条链路最精妙的设计,在于把 Varlink 协议的”同步 RPC”语义,优雅地映射到了 DNS 查询的”异步多步事务”模型之上——通过</strong> <strong>​<code>q-&gt;complete</code>​</strong>​ <strong>函数指针这一个间接层,让 Varlink 层完全不需要知道 DNS 查询要发几个包、查几条 CNAME、是否要重试。</strong></p>
+</blockquote>
+<p>这个间接层的具体体现就是 <code>resolved-varlink.c:402</code>​ 的 <code>q-&gt;complete = vl_method_resolve_hostname_complete;</code>​。一行赋值,把”协议层”(Varlink)和”业务层”(DNS query)彻底解耦。systemd-resolved 因此可以同时为 Varlink、D-Bus、内置 DNS stub listener 三种外部接口服务,共用同一套 <code>dns_query_*</code> 实现。这种”业务层不知道上层是谁”的设计,是 systemd-resolved 能在 systemd 259 演化出 Hook、Delegate、Monitor 等多个新接口而无需重写核心的根本原因。</p>
+<hr>
+<h2 id="附录-核心数据结构速查"><a href="#附录-核心数据结构速查" class="headerlink" title="附录:核心数据结构速查"></a>附录:核心数据结构速查</h2><table>
+<thead>
+<tr>
+<th>结构</th>
+<th>定义位置</th>
+<th>关键字段</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>​<code>sd_varlink</code></td>
+<td>​<code>varlink-internal.h:84-191</code></td>
+<td>​<code>state</code>​(VarlinkState)、<code>input_fd</code>​&#x2F;<code>output_fd</code>​、<code>input_buffer</code>​&#x2F;<code>output_buffer</code>​、<code>output_queue</code>​(JSON+fd 绑定)、<code>n_pending</code>​(在飞方法数)、<code>reply_callback</code>​、<code>current</code>​(已解析的当前 JSON)、<code>ucred</code>​&#x2F;<code>peer_pidfd</code>(对端凭证)</td>
+</tr>
+<tr>
+<td>​<code>sd_varlink_server</code></td>
+<td>​<code>varlink-internal.h:206-236</code></td>
+<td>​<code>methods</code>​(name→callback hashmap)、<code>interfaces</code>​&#x2F;<code>symbols</code>​(IDL 元数据)、<code>by_uid</code>​(per-UID 连接计数)、<code>n_connections</code>​&#x2F;<code>connections_max</code></td>
+</tr>
+<tr>
+<td>​<code>VarlinkJsonQueueItem</code></td>
+<td>​<code>varlink-internal.h:77-82</code></td>
+<td>​<code>data</code>​(JSON)、<code>n_fds</code>​+<code>fds[]</code>(绑定的 fd 数组)</td>
+</tr>
+<tr>
+<td>​<code>LookupParameters</code></td>
+<td>​<code>resolved-varlink.c:36-44</code></td>
+<td>​<code>ifindex</code>​、<code>family</code>​、<code>name</code>​、<code>flags</code> —— ResolveHostname&#x2F;Address 的入参聚合</td>
+</tr>
+<tr>
+<td>​<code>DnsQuery</code></td>
+<td>​<code>resolved-dns-query.h</code></td>
+<td>​<code>state</code>​(DNS_TRANSACTION_*)、<code>varlink_request</code>​(反向引用 link)、<code>complete</code>​(完成回调)、<code>question</code>​、<code>answer</code></td>
+</tr>
+<tr>
+<td>​<code>Manager</code></td>
+<td>​<code>resolved-manager.h</code></td>
+<td>​<code>varlink_server</code>​(主服务)、<code>varlink_monitor_server</code>​(监控服务)、<code>event</code>(sd-event)、DNS scope&#x2F;server&#x2F;cache 子系统</td>
+</tr>
+</tbody></table>
+<h2 id="附录-本报告涉及的全部源文件"><a href="#附录-本报告涉及的全部源文件" class="headerlink" title="附录:本报告涉及的全部源文件"></a>附录:本报告涉及的全部源文件</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>行数</th>
+<th>在本报告中的角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>​<code>src/libsystemd/sd-varlink/sd-varlink.c</code></td>
+<td>4351</td>
+<td>Varlink 协议库主体(客户端+服务端)</td>
+</tr>
+<tr>
+<td>​<code>src/libsystemd/sd-varlink/varlink-internal.h</code></td>
+<td>261</td>
+<td>​<code>sd_varlink</code>​&#x2F;<code>sd_varlink_server</code> 结构与 21 状态枚举</td>
+</tr>
+<tr>
+<td>​<code>src/libsystemd/sd-varlink/sd-varlink-idl.c</code></td>
+<td>1993</td>
+<td>IDL 解析与请求&#x2F;回复类型校验</td>
+</tr>
+<tr>
+<td>​<code>src/nss-resolve/nss-resolve.c</code></td>
+<td>729</td>
+<td>客户端 NSS 模块,把 gethostbyname 翻译为 Varlink</td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved.c</code></td>
+<td>~80</td>
+<td>systemd-resolved 进程入口</td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-manager.c</code></td>
+<td>2364</td>
+<td>Manager 启动、<code>manager_varlink_init()</code></td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-varlink.c</code></td>
+<td>1566</td>
+<td>服务端 method handler、<code>vl_method_resolve_*</code></td>
+</tr>
+<tr>
+<td>​<code>src/resolve/resolved-dns-query.c</code></td>
+<td>1629</td>
+<td>DNS 查询抽象(协议无关)</td>
+</tr>
+<tr>
+<td>​<code>src/shared/varlink-io.systemd.Resolve.c</code></td>
+<td>419</td>
+<td>​<code>io.systemd.Resolve</code> 接口的 IDL 定义</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>基于 systemd 259.6 源码分析。所有 file:line 引用均可在源码树中直接定位。</em></p>
+<p>‍</p>
+<p>源码下载：<a target="_blank" rel="noopener" href="https://kojipkgs.fedoraproject.org//packages/systemd/259.6/1.fc44/src/systemd-259.6-1.fc44.src.rpm">https://kojipkgs.fedoraproject.org//packages/systemd/259.6/1.fc44/src/systemd-259.6-1.fc44.src.rpm</a></p>
+<p>‍</p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#io-systemd-Resolve-%E8%AF%B7%E6%B1%82%E5%85%A8%E9%93%BE%E8%B7%AF%E6%B7%B1%E5%BA%A6%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">io.systemd.Resolve 请求全链路深度分析</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-0-%E7%AB%A0-%E8%83%8C%E6%99%AF%E6%95%85%E4%BA%8B"><span class="toc-number">1.1.</span> <span class="toc-text">第 0 章 背景故事</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-1-%E7%AB%A0-%E5%85%A8%E6%99%AF-Linux-%E5%90%8D%E5%AD%97%E8%A7%A3%E6%9E%90%E4%B8%8E-Varlink-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="toc-number">1.2.</span> <span class="toc-text">第 1 章 全景:Linux 名字解析与 Varlink 的关系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-2-%E7%AB%A0-%E6%95%B4%E4%BD%93%E6%9E%B6%E6%9E%84-%E4%B8%89%E5%A5%97%E7%8A%B6%E6%80%81%E6%9C%BA%E7%9A%84%E5%8D%8F%E4%BD%9C"><span class="toc-number">1.3.</span> <span class="toc-text">第 2 章 整体架构:三套状态机的协作</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-3-%E7%AB%A0-%E6%9C%8D%E5%8A%A1%E7%AB%AF-socket-%E7%9A%84%E8%AF%9E%E7%94%9F"><span class="toc-number">1.4.</span> <span class="toc-text">第 3 章 服务端:socket 的诞生</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-%E5%88%9B%E5%BB%BA-server%E3%80%81%E7%BB%91%E5%AE%9A%E6%96%B9%E6%B3%95%E3%80%81%E7%BB%91%E5%AE%9A%E5%9C%B0%E5%9D%80"><span class="toc-number">1.4.1.</span> <span class="toc-text">3.1 创建 server、绑定方法、绑定地址</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-IDL-%E6%8E%A5%E5%8F%A3%E7%9A%84%E2%80%9D%E8%87%AA%E6%8F%8F%E8%BF%B0%E2%80%9D"><span class="toc-number">1.4.2.</span> <span class="toc-text">3.2 IDL:接口的”自描述”</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E5%AE%A2%E6%88%B7%E7%AB%AF-NSS-%E6%A8%A1%E5%9D%97%E5%8F%91%E8%B5%B7%E8%BF%9E%E6%8E%A5"><span class="toc-number">1.5.</span> <span class="toc-text">第 4 章 客户端:NSS 模块发起连接</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-NSS-%E5%85%A5%E5%8F%A3%E8%A2%AB-libc-%E8%B0%83%E8%B5%B7"><span class="toc-number">1.5.1.</span> <span class="toc-text">4.1 NSS 入口被 libc 调起</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-connect-to-resolved-%E6%89%93%E5%BC%80-socket"><span class="toc-number">1.5.2.</span> <span class="toc-text">4.2 connect_to_resolved:打开 socket</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-NSS-%E6%A8%A1%E5%9D%97%E7%9A%84%E7%89%B9%E6%AE%8A%E8%80%83%E9%87%8F"><span class="toc-number">1.5.3.</span> <span class="toc-text">4.3 NSS 模块的特殊考量</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-5-%E7%AB%A0-%E5%90%8C%E6%AD%A5-RPC-sd-varlink-call-%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%BA"><span class="toc-number">1.6.</span> <span class="toc-text">第 5 章 同步 RPC:sd_varlink_call 的状态机</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#5-1-varlink-enqueue-json-%E6%B6%88%E6%81%AF%E4%B8%8E-fd-%E7%9A%84%E8%BE%B9%E7%95%8C%E7%BB%91%E5%AE%9A"><span class="toc-number">1.6.1.</span> <span class="toc-text">5.1 varlink_enqueue_json:消息与 fd 的边界绑定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-2-sd-varlink-process-%E7%8A%B6%E6%80%81%E6%9C%BA%E7%9A%84%E5%8F%91%E5%8A%A8%E6%9C%BA"><span class="toc-number">1.6.2.</span> <span class="toc-text">5.2 sd_varlink_process:状态机的发动机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-6-%E7%AB%A0-%E6%9C%8D%E5%8A%A1%E7%AB%AF-accept-%E4%B8%8E-dispatch"><span class="toc-number">1.7.</span> <span class="toc-text">第 6 章 服务端:accept 与 dispatch</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#6-1-%E5%AE%89%E5%85%A8%E6%A3%80%E6%9F%A5-per-UID-%E9%85%8D%E9%A2%9D"><span class="toc-number">1.7.1.</span> <span class="toc-text">6.1 安全检查:per-UID 配额</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-2-dispatch-method-JSON-%E8%90%BD%E5%88%B0-C-%E5%9B%9E%E8%B0%83"><span class="toc-number">1.7.2.</span> <span class="toc-text">6.2 dispatch_method:JSON 落到 C 回调</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-7-%E7%AB%A0-DNS-%E6%9F%A5%E8%AF%A2%E7%9A%84%E5%BC%82%E6%AD%A5%E8%A7%A6%E5%8F%91"><span class="toc-number">1.8.</span> <span class="toc-text">第 7 章 DNS 查询的异步触发</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#7-1-parse-as-address-%E7%BB%95%E8%BF%87%E7%BD%91%E7%BB%9C%E7%9A%84%E4%BC%98%E5%8C%96"><span class="toc-number">1.8.1.</span> <span class="toc-text">7.1 parse_as_address:绕过网络的优化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-8-%E7%AB%A0-%E5%9B%9E%E5%A4%8D%E8%B7%AF%E5%BE%84-%E4%BB%8E-DNS-%E5%93%8D%E5%BA%94%E5%88%B0-Varlink-JSON"><span class="toc-number">1.9.</span> <span class="toc-text">第 8 章 回复路径:从 DNS 响应到 Varlink JSON</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#8-1-varlink-write-%E6%95%B0%E6%8D%AE%E7%9C%9F%E6%AD%A3%E5%8F%91%E5%87%BA%E5%8E%BB"><span class="toc-number">1.9.1.</span> <span class="toc-text">8.1 varlink_write:数据真正发出去</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-9-%E7%AB%A0-%E9%94%99%E8%AF%AF%E4%BC%A0%E6%92%AD%E4%B8%8E-NSS-%E7%8A%B6%E6%80%81%E6%98%A0%E5%B0%84"><span class="toc-number">1.10.</span> <span class="toc-text">第 9 章 错误传播与 NSS 状态映射</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#9-1-varlink-error-%E2%86%92-errno"><span class="toc-number">1.10.1.</span> <span class="toc-text">9.1 varlink error → errno</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-2-varlink-error-%E2%86%92-NSS-%E7%8A%B6%E6%80%81"><span class="toc-number">1.10.2.</span> <span class="toc-text">9.2 varlink error → NSS 状态</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-3-vl-on-disconnect-%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B6%88%E5%A4%B1%E6%97%B6%E6%B8%85%E7%90%86%E6%9F%A5%E8%AF%A2"><span class="toc-number">1.10.3.</span> <span class="toc-text">9.3 vl_on_disconnect:客户端消失时清理查询</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-10-%E7%AB%A0-%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%97%B6%E5%BA%8F-%E6%8A%8A%E6%89%80%E6%9C%89%E7%AB%A0%E8%8A%82%E4%B8%B2%E8%B5%B7%E6%9D%A5"><span class="toc-number">1.11.</span> <span class="toc-text">第 10 章 端到端时序:把所有章节串起来</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC-11-%E7%AB%A0-%E8%AE%BE%E8%AE%A1%E5%93%B2%E5%AD%A6%E4%B8%8E%E6%80%BB%E7%BB%93"><span class="toc-number">1.12.</span> <span class="toc-text">第 11 章 设计哲学与总结</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#11-1-%E4%B8%89%E4%B8%AA%E6%A0%B8%E5%BF%83%E8%AE%BE%E8%AE%A1%E5%8E%9F%E5%88%99"><span class="toc-number">1.12.1.</span> <span class="toc-text">11.1 三个核心设计原则</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-2-%E6%A0%B8%E5%BF%83%E6%B4%9E%E5%AF%9F"><span class="toc-number">1.12.2.</span> <span class="toc-text">11.2 核心洞察</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-%E6%A0%B8%E5%BF%83%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E9%80%9F%E6%9F%A5"><span class="toc-number">1.13.</span> <span class="toc-text">附录:核心数据结构速查</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-%E6%9C%AC%E6%8A%A5%E5%91%8A%E6%B6%89%E5%8F%8A%E7%9A%84%E5%85%A8%E9%83%A8%E6%BA%90%E6%96%87%E4%BB%B6"><span class="toc-number">1.14.</span> <span class="toc-text">附录:本报告涉及的全部源文件</span></a></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&text=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&is_video=false&description=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=io.systemd.Resolve 请求全链路深度分析&body=Check out this article: https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&title=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&name=io.systemd.Resolve 请求全链路深度分析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html&t=io.systemd.Resolve 请求全链路深度分析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
