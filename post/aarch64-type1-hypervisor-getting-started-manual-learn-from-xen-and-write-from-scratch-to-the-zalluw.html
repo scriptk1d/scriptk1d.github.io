@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang=cn>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界第一章：基础概念1.1 Type-1 与 Type-2 Type-1（裸机型） ：hypervisor 直接跑在硬件上，自己就是最小的“操作系统内核”，guest OS 跑在它之上。Xen、Hyper-V 属于这类。 Type-2（托管型） ：hypervisor 是一个普通 OS 里的程序&amp;#x2F">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界">
+<meta property="og:url" content="https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html">
+<meta property="og:site_name" content="scriptk1d">
+<meta property="og:description" content="AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界第一章：基础概念1.1 Type-1 与 Type-2 Type-1（裸机型） ：hypervisor 直接跑在硬件上，自己就是最小的“操作系统内核”，guest OS 跑在它之上。Xen、Hyper-V 属于这类。 Type-2（托管型） ：hypervisor 是一个普通 OS 里的程序&amp;#x2F">
+<meta property="og:locale">
+<meta property="article:published_time" content="2026-10-20T09:49:59.000Z">
+<meta property="article:modified_time" content="2026-10-20T10:10:18.000Z">
+<meta property="article:author" content="scriptk1d">
+<meta name="twitter:card" content="summary">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界</title>
+    <!-- async scripts -->
+    <!-- Google Analytics -->
+
+
+    <!-- Umami Analytics -->
+
+
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+	<!-- mathjax -->
+	
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fa-solid fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa-solid fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/post/iosystemdresolve-requests-full-link-indepth-analysis-zhqnxx.html"><i class="fa-solid fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fa-solid fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&text=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&is_video=false&description=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界&body=Check out this article: https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html"><i class="fa-solid fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&name=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&t=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    
+    
+      <div id="toc">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#AArch64-Type-1-Hypervisor-%E5%85%A5%E9%97%A8%E6%89%8B%E5%86%8C%EF%BC%9A%E8%B7%9F%E7%9D%80-Xen-%E5%AD%A6%EF%BC%8C%E4%BB%8E%E9%9B%B6%E5%86%99%E5%88%B0-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.</span> <span class="toc-text">AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5"><span class="toc-number">1.1.</span> <span class="toc-text">第一章：基础概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Type-1-%E4%B8%8E-Type-2"><span class="toc-number">1.1.1.</span> <span class="toc-text">1.1 Type-1 与 Type-2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-ARM-%E5%BC%82%E5%B8%B8%E7%BA%A7%E5%88%AB-EL0%E2%80%93EL3"><span class="toc-number">1.1.2.</span> <span class="toc-text">1.2 ARM 异常级别 EL0–EL3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E4%B8%A4%E6%AE%B5%E5%BC%8F%E5%9C%B0%E5%9D%80%E7%BF%BB%E8%AF%91%EF%BC%9AStage-1-%E4%B8%8E-Stage-2"><span class="toc-number">1.1.3.</span> <span class="toc-text">1.3 两段式地址翻译：Stage-1 与 Stage-2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-%E9%99%B7%E5%85%A5%EF%BC%88trap%EF%BC%89%E4%B8%8E%E6%95%8F%E6%84%9F%E6%93%8D%E4%BD%9C%E6%8B%A6%E6%88%AA"><span class="toc-number">1.1.4.</span> <span class="toc-text">1.4 陷入（trap）与敏感操作拦截</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-%E4%B8%A4%E4%BB%BD%E6%A0%B8%E5%BF%83%E6%96%87%E6%A1%A3"><span class="toc-number">1.1.5.</span> <span class="toc-text">1.5 两份核心文档</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9AXen-%E5%90%AF%E5%8A%A8%E7%9A%84%E4%B8%83%E4%B8%AA%E9%98%B6%E6%AE%B5"><span class="toc-number">1.2.</span> <span class="toc-text">第二章：Xen 启动的七个阶段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E9%95%9C%E5%83%8F%E5%A4%B4%E4%B8%8E%E5%8A%A0%E8%BD%BD%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.2.1.</span> <span class="toc-text">2.1 镜像头与加载约定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E4%BD%8D%E7%BD%AE%E6%97%A0%E5%85%B3%E4%BB%A3%E7%A0%81%E4%B8%8E-phys-offset"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.2 位置无关代码与 phys-offset</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-EL2-%E6%A3%80%E6%9F%A5%EF%BC%88check-cpu-mode%EF%BC%89"><span class="toc-number">1.2.3.</span> <span class="toc-text">2.3 EL2 检查（check_cpu_mode）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-%E6%89%93%E5%BC%80-MMU-%E5%89%8D%E7%9A%84%E5%AF%84%E5%AD%98%E5%99%A8%E5%87%86%E5%A4%87%EF%BC%88cpu-init%EF%BC%89"><span class="toc-number">1.2.4.</span> <span class="toc-text">2.4 打开 MMU 前的寄存器准备（cpu_init）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84%E4%B8%8E%E5%BC%80-MMU%EF%BC%88enable-mmu%EF%BC%89"><span class="toc-number">1.2.5.</span> <span class="toc-text">2.5 恒等映射与开 MMU（enable_mmu）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-6-%E8%B7%B3%E5%85%A5-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.2.6.</span> <span class="toc-text">2.6 跳入 C 世界</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-7-init-traps-%E4%B8%8E%E9%99%B7%E8%8E%B7%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.7.</span> <span class="toc-text">2.7 init_traps 与陷获配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-8-%E5%90%8E%E7%BB%AD%E5%88%9D%E5%A7%8B%E5%8C%96%E9%A1%BA%E5%BA%8F%E4%B8%8E%E4%BE%9D%E8%B5%96"><span class="toc-number">1.2.8.</span> <span class="toc-text">2.8 后续初始化顺序与依赖</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E6%9C%80%E5%B0%8F%E9%AA%A8%E6%9E%B6%E7%9A%84%E6%9E%84%E5%BB%BA%E4%B8%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB"><span class="toc-number">1.3.</span> <span class="toc-text">第三章：最小骨架的构建与代码解读</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%9E%84%E5%BB%BA%E4%B8%8E%E8%BF%90%E8%A1%8C"><span class="toc-number">1.3.1.</span> <span class="toc-text">1 构建与运行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB"><span class="toc-number">1.3.2.</span> <span class="toc-text">2 代码解读</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-1-%E5%90%AF%E5%8A%A8%E9%93%BE%E8%B7%AF%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.2.1.</span> <span class="toc-text">3.2.1 启动链路总览</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-2-Image-%E5%A4%B4%E4%B8%8E%E5%8A%A0%E8%BD%BD%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.3.2.2.</span> <span class="toc-text">3.2.2 Image 头与加载约定</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-3-EL2-%E6%A3%80%E6%9F%A5%E3%80%81%E6%A0%88%E5%92%8C%E5%90%91%E9%87%8F%E8%A1%A8"><span class="toc-number">1.3.2.3.</span> <span class="toc-text">3.2.3 EL2 检查、栈和向量表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-4-MAIR-EL2%E3%80%81TCR-EL2%E3%80%81SCTLR-EL2"><span class="toc-number">1.3.2.4.</span> <span class="toc-text">3.2.4 MAIR_EL2、TCR_EL2、SCTLR_EL2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-5-%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84%E4%B8%8E%E5%BC%80-MMU"><span class="toc-number">1.3.2.5.</span> <span class="toc-text">3.2.5 恒等映射与开 MMU</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-6-%E8%BF%9B%E5%85%A5-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.3.2.6.</span> <span class="toc-text">3.2.6 进入 C 世界</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-7-%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8"><span class="toc-number">1.3.2.7.</span> <span class="toc-text">3.2.7 异常向量表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-8-main-c%EF%BC%9AC-%E4%B8%96%E7%95%8C%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.3.2.8.</span> <span class="toc-text">3.2.8 main.c：C 世界的初始化</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-9-%E5%BD%93%E5%89%8D%E8%BE%B9%E7%95%8C%E4%B8%8E%E4%B8%8B%E4%B8%80%E6%AD%A5"><span class="toc-number">1.3.2.9.</span> <span class="toc-text">3.2.9 当前边界与下一步</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%8D%81%E4%B8%AA%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF"><span class="toc-number">1.4.</span> <span class="toc-text">第四章：十个常见错误</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E6%9C%AF%E8%AF%AD%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">1.5.</span> <span class="toc-text">第五章：术语速查表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E5%90%8E%E7%BB%AD%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF"><span class="toc-number">1.6.</span> <span class="toc-text">第六章：后续学习路线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%9C%80%E5%B0%8F%E9%AA%A8%E6%9E%B6%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81"><span class="toc-number">1.7.</span> <span class="toc-text">附录 A：最小骨架完整代码</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#A-1-boot-S"><span class="toc-number">1.7.1.</span> <span class="toc-text">A.1 boot.S</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#A-2-main-c"><span class="toc-number">1.7.2.</span> <span class="toc-text">A.2 main.c</span></a></li></ol></li></ol></li></ol>
+      </div>
+    
+  </span>
+</div>
+
+    
+    <div class="content index py4 ">
+        
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle p-name" itemprop="name headline">
+        AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author p-author h-card" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span class="p-name" itemprop="name">scriptk1d</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2026-10-20T09:49:59.000Z" class="dt-published" itemprop="datePublished">2026-10-20</time>
+        
+      
+    </div>
+
+
+      
+
+      
+
+    </div>
+  </header>
+  
+
+  <div class="content e-content" itemprop="articleBody">
+    <h1 id="AArch64-Type-1-Hypervisor-入门手册：跟着-Xen-学，从零写到-C-世界"><a href="#AArch64-Type-1-Hypervisor-入门手册：跟着-Xen-学，从零写到-C-世界" class="headerlink" title="AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"></a>AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界</h1><h2 id="第一章：基础概念"><a href="#第一章：基础概念" class="headerlink" title="第一章：基础概念"></a>第一章：基础概念</h2><h3 id="1-1-Type-1-与-Type-2"><a href="#1-1-Type-1-与-Type-2" class="headerlink" title="1.1 Type-1 与 Type-2"></a>1.1 Type-1 与 Type-2</h3><ul>
+<li><strong>Type-1（裸机型）</strong> ：hypervisor 直接跑在硬件上，自己就是最小的“操作系统内核”，guest OS 跑在它之上。Xen、Hyper-V 属于这类。</li>
+<li><strong>Type-2（托管型）</strong> ：hypervisor 是一个普通 OS 里的程序&#x2F;模块，借宿主 OS 管理硬件。VMware Workstation、KVM（从架构上看）属于这类。</li>
+</ul>
+<p>本手册讲 Type-1：你的代码是复位后第一批运行的代码，没有 OS 替你铺路，所以“从启动到 C 世界”这段路要自己修。</p>
+<h3 id="1-2-ARM-异常级别-EL0–EL3"><a href="#1-2-ARM-异常级别-EL0–EL3" class="headerlink" title="1.2 ARM 异常级别 EL0–EL3"></a>1.2 ARM 异常级别 EL0–EL3</h3><p>ARMv8-A 把 CPU 分成 4 个特权级别，数字越大权限越大：</p>
+<table>
+<thead>
+<tr>
+<th>级别</th>
+<th>名字</th>
+<th>通常住谁</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EL0</td>
+<td>用户态</td>
+<td>普通应用程序</td>
+<td>用户</td>
+</tr>
+<tr>
+<td>EL1</td>
+<td>内核态</td>
+<td>guest OS 内核（如 Linux）</td>
+<td>操作系统</td>
+</tr>
+<tr>
+<td><strong>EL2</strong></td>
+<td><strong>虚拟化层</strong></td>
+<td><strong>你的 hypervisor</strong></td>
+<td><strong>宿主管家</strong></td>
+</tr>
+<tr>
+<td>EL3</td>
+<td>安全世界&#x2F;固件</td>
+<td>TF-A、Secure Monitor</td>
+<td>主板固件</td>
+</tr>
+</tbody></table>
+<ol>
+<li><strong>只有 EL2 才有虚拟化扩展</strong>：<code>VTTBR_EL2</code>（Stage-2 页表基址）、<code>HCR_EL2</code>（陷获配置总开关）、<code>VBAR_EL2</code>（EL2 自己的异常向量表）这些寄存器只在 EL2 可访问。</li>
+<li>从高 EL 进低 EL 用 <code>eret</code>（异常返回），低 EL 想叫高 EL 用 <code>svc/hvc/smc</code>（分别进入 EL1&#x2F;EL2&#x2F;EL3）。guest 调 hypervisor 就是执行 <code>hvc #0</code>。</li>
+<li>EL2 还有两个变体：<strong>EL2h &#x2F; EL2t</strong>（由 <code>SPSel</code> 决定用不用专属栈指针 <code>SP_EL2</code>），Xen 两个都接受。</li>
+</ol>
+<h3 id="1-3-两段式地址翻译：Stage-1-与-Stage-2"><a href="#1-3-两段式地址翻译：Stage-1-与-Stage-2" class="headerlink" title="1.3 两段式地址翻译：Stage-1 与 Stage-2"></a>1.3 两段式地址翻译：Stage-1 与 Stage-2</h3><p>普通 OS 里，虚拟地址（VA）经 MMU 翻译成物理地址（PA）。虚拟化下多了一段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">guest VA --(Stage-1, guest 自己的页表, TTBR0_EL1)--&gt; guest 以为的&quot;物理地址&quot;(IPA)</span><br><span class="line">IPA      --(Stage-2, hypervisor 的页表, VTTBR_EL2)--&gt; 真实物理地址 PA</span><br></pre></td></tr></table></figure>
+
+<p>guest 并不知道 Stage-2 的存在；hypervisor 靠 Stage-2 把每个 guest 限制在各自的内存范围内。<strong>Stage-2 是 Type-1 hypervisor 实现隔离的关键机制</strong>，本手册第 7 站之后会用到它，但“进 C 世界”之前你不需要建它。</p>
+<h3 id="1-4-陷入（trap）与敏感操作拦截"><a href="#1-4-陷入（trap）与敏感操作拦截" class="headerlink" title="1.4 陷入（trap）与敏感操作拦截"></a>1.4 陷入（trap）与敏感操作拦截</h3><p>hypervisor 让 guest 以为自己独占硬件，但敏感操作会掉进 EL2，由你拦截。</p>
+<ul>
+<li>guest 执行 <code>hvc</code> → 硬件自动跳转到 <code>VBAR_EL2</code> 指向的向量表 → 你的代码运行；</li>
+<li>guest 访问不存在的内存（Stage-2 缺页）→ 产生 Stage-2 Abort → 同样掉进 EL2；</li>
+<li>guest 开关中断、访问定时器等 → 由 <code>HCR_EL2</code> 的各位决定是否掉进 EL2。</li>
+</ul>
+<p>掉进来时，硬件把原因写进 <strong>​<code>ESR_EL2</code>​</strong>（异常症状寄存器），你的分发代码读它来分派处理。Xen 里对应 <code>guest_sync → do_trap_guest_sync</code> 这条链。</p>
+<h3 id="1-5-两份核心文档"><a href="#1-5-两份核心文档" class="headerlink" title="1.5 两份核心文档"></a>1.5 两份核心文档</h3><ul>
+<li><strong>ARM ARM</strong>（Arm Architecture Reference Manual, ARMv8-A 版，文档号 DDI 0487）：寄存器位定义和异常模型都以它为准。遇到不认识的位段，查它。</li>
+<li><strong>Linux arm64 booting 文档</strong>（<code>Documentation/arch/arm64/booting.rst</code>）：定义了引导器加载你时必须遵守的约定；按它写，U-Boot&#x2F;GRUB 等引导器才能正确加载。</li>
+</ul>
+<hr>
+<h2 id="第二章：Xen-启动的七个阶段"><a href="#第二章：Xen-启动的七个阶段" class="headerlink" title="第二章：Xen 启动的七个阶段"></a>第二章：Xen 启动的七个阶段</h2><p>把 Xen 从引导器跳入后的第一条指令到 C 语言入口（<code>start_xen</code>）的整条路分成七个阶段：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[0] 镜像头          start:  add x13, x18, #0x16  （opcode 即 &quot;MZ&quot;，兼容 PE/COFF）</span><br><span class="line">[1] 位置无关        算出 phys-offset = 实际加载地址 - 链接地址</span><br><span class="line">[2] EL2 检查        check_cpu_mode：不是 EL2 就打印报错并停机</span><br><span class="line">[3] CPU 配置        cpu_init：写 MAIR_EL2 / TCR_EL2 / SCTLR_EL2</span><br><span class="line">[4] 开 MMU          建恒等映射 → enable_mmu（tlbi→TTBR0_EL2→dsb→isb→置 M/C→isb）</span><br><span class="line">[5] 进 C 世界       b start_xen（x0 = DTB 物理地址）</span><br><span class="line">[6] 陷获配置        init_traps()：VBAR_EL2 / MDCR_EL2 / HSTR_EL2 / CPTR_EL2 / HCR_EL2</span><br><span class="line">[7] 后续初始化      按依赖顺序：解析 DTB → 页表重建 → … → alternatives 补丁放最后</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-1-镜像头与加载约定"><a href="#2-1-镜像头与加载约定" class="headerlink" title="2.1 镜像头与加载约定"></a>2.1 镜像头与加载约定</h3><p><strong>Xen 的做法</strong>（<code>xen/arch/arm/arm64/head.S</code> 开头，节选）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">FUNC(start)</span><br><span class="line">        /*</span><br><span class="line">         * DO NOT MODIFY. Image header expected by Linux boot-loaders.</span><br><span class="line">         */</span><br><span class="line">efi_head:</span><br><span class="line">        /*</span><br><span class="line">         * This add instruction has no meaningful effect except that</span><br><span class="line">         * its opcode forms the magic &quot;MZ&quot; signature of a PE/COFF file</span><br><span class="line">         * that is required for UEFI applications.</span><br><span class="line">         */</span><br><span class="line">        add   x13, x18, #0x16</span><br><span class="line">        b     real_start      /* branch to kernel start */</span><br><span class="line">END(start)</span><br><span class="line">        .quad   0             /* Image load offset from start of RAM */</span><br><span class="line">        .quad   _end - start  /* Effective size of kernel image */</span><br><span class="line">        .quad   __HEAD_FLAGS  /* Informative flags */</span><br><span class="line">        ...</span><br><span class="line">        .byte   0x41, 0x52, 0x4d, 0x64   /* Magic number, &quot;ARM\x64&quot; */</span><br><span class="line">        .long   pe_header - efi_head     /* 0x3c 处：PE 头偏移（EFI 时） */</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><strong>引导器跳进 Xen 后执行的第一条指令是 <strong>​</strong>​<code>add x13, x18, #0x16</code>​</strong>。这条指令本身没有实际作用，它的意义在机器码：前两个字节恰好是 <code>4D 5A</code>，即 ASCII <code>&quot;MZ&quot;</code>——UEFI 要求 PE&#x2F;COFF 可执行文件以 <code>&quot;MZ&quot;</code> 开头。于是同一个文件头同时满足两种加载器。</li>
+<li><code>b real_start</code> 才是真正干活的跳转。</li>
+<li>后面那一串 <code>.quad/.byte</code> 是 <strong>Linux arm64 Image 头</strong>：告诉引导器“我是什么格式、希望加载到哪、有多大”。<code>.byte 0x41,0x52,0x4d,0x64</code> 拼出来是 <code>&quot;ARM\x64&quot;</code> magic，引导器靠它确认没加载错文件。</li>
+</ol>
+<p><strong>你要学的</strong>：不要发明私有镜像格式。照着 Linux Image 头布局写，U-Boot 的 <code>booti</code>、GRUB、QEMU 的 <code>-kernel</code> 都认这个格式。</p>
+<p><strong>你的骨架</strong>：照着 Xen 这段头部改写（去掉 EFI 部分也行，保留 <code>&quot;ARM\x64&quot;</code> magic 和几个 <code>.quad</code> 即可，完整写法见附录 A）。</p>
+<h3 id="2-2-位置无关代码与-phys-offset"><a href="#2-2-位置无关代码与-phys-offset" class="headerlink" title="2.2 位置无关代码与 phys-offset"></a>2.2 位置无关代码与 phys-offset</h3><p><strong>问题</strong>：链接器按某个假设地址（比如 <code>0x40200000</code>）生成你的代码，但引导器可能把你放在任意物理地址。MMU 还没开，代码必须“放哪都能跑”。</p>
+<p><strong>Xen 的做法</strong>（<code>real_start</code> 内）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/* Find out where we are */</span><br><span class="line">ldr   x0, =start        // x0 = start 的链接地址（链接时固定）</span><br><span class="line">adr   x19, start        // x19 = start 此刻的真实物理地址（PC 相对）</span><br><span class="line">sub   x20, x19, x0      // x20 := phys-offset</span><br></pre></td></tr></table></figure>
+
+<p><code>ldr</code> 与 <code>adr</code> 的区别：</p>
+<ul>
+<li><code>ldr x0, =start</code> 是伪指令：汇编器把 <code>start</code> 的<strong>链接时地址</strong>作为立即数放进常量池，<code>ldr</code> 把它读出来。这个值在链接时就固定了。</li>
+<li><code>adr x19, start</code> 是 <strong>PC 相对寻址</strong>：把“当前 PC 到 start 的距离”加到 PC 上，得到 <code>start</code> <strong>此刻真实所在</strong>的地址。代码被搬到哪都算得对。</li>
+<li>两者之差 <code>phys-offset</code> 就是“引导器把我搬离了多远”。之后任何需要绝对地址的地方（比如写页表项），都用 <code>链接地址 + phys-offset</code> 换算。</li>
+</ul>
+<p><strong>你要学的</strong>：MMU 开启前，取地址用 <code>adr</code>、<code>adrp</code> 或 <code>adr_l</code>，跳转只用相对跳转（<code>b/bl</code> 本来就是相对的）。如果把 <code>ldr x0, =某符号</code> 读出的链接地址当作运行地址，在“加载地址 ≠ 链接地址”的机器上就会取指失败。这类 bug 在 QEMU 上往往测不出来，因为 QEMU 通常按链接地址加载；换到真机才暴露。</p>
+<h3 id="2-3-EL2-检查（check-cpu-mode）"><a href="#2-3-EL2-检查（check-cpu-mode）" class="headerlink" title="2.3 EL2 检查（check_cpu_mode）"></a>2.3 EL2 检查（check_cpu_mode）</h3><p><strong>Xen 的做法</strong>（<code>arm64/head.S</code>，逐字）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">FUNC_LOCAL(check_cpu_mode)</span><br><span class="line">        PRINT_ID(&quot;- Current EL &quot;)</span><br><span class="line">        mrs   x5, CurrentEL</span><br><span class="line">        print_reg x5</span><br><span class="line">        PRINT_ID(&quot; -\r\n&quot;)</span><br><span class="line">        /* Are we in EL2 */</span><br><span class="line">        cmp   x5, #PSR_MODE_EL2t</span><br><span class="line">        ccmp  x5, #PSR_MODE_EL2h, #0x4, ne</span><br><span class="line">        b.ne  1f               /* No */</span><br><span class="line">        ret</span><br><span class="line">1:</span><br><span class="line">        /* OK, we&#x27;re boned. */</span><br><span class="line">        PRINT_ID(&quot;- Xen must be entered in NS EL2 mode -\r\n&quot;)</span><br><span class="line">        PRINT_ID(&quot;- Please update the bootloader -\r\n&quot;)</span><br><span class="line">        b     fail</span><br><span class="line">END(check_cpu_mode)</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><code>mrs x5, CurrentEL</code>：读当前异常级别。<code>CurrentEL[3:2]</code> 是 EL 编号，低两位 RES0，所以 EL2 的读数是 <code>0x8</code>。<code>0x9</code> 是 PSTATE 里 <code>EL2h</code> 的模式编码（<code>PSR_MODE_EL2h</code>），不是 <code>CurrentEL</code> 的读数。</li>
+<li><code>ccmp x5, #PSR_MODE_EL2h, #0x4, ne</code> 是条件比较。上一条 <code>cmp</code> 已经把 <code>x5</code> 和 <code>PSR_MODE_EL2t</code>（<code>0x8</code>）比较过；只有结果不等（<code>ne</code>）时，<code>ccmp</code> 才继续和 <code>PSR_MODE_EL2h</code>（<code>0x9</code>）比较。若条件不成立，<code>ccmp</code> 直接把 NZCV 设为 <code>0x4</code>，即 <code>Z=1</code>。<ul>
+<li>对 <code>CurrentEL</code> 来说，EL2 的 <code>0x8</code> 已经让第一个比较相等；第二个比较针对 PSTATE 编码，在当前架构下不会命中。</li>
+<li>紧跟 <code>b.ne 1f</code>：两次比较都不相等（<code>Z=0</code>）才跳去报错。</li>
+</ul>
+</li>
+<li>失败时不是默默死机，而是用 earlyprintk 打两行提示再 <code>b fail</code>。检查失败时要能打印原因，否则只能靠猜定位问题。</li>
+</ol>
+<p><strong>你要学的</strong>：hypervisor 只能跑在 EL2（否则 <code>HCR_EL2</code> 等寄存器根本不存在），所以进入后第一时间确认。顺带一个工程习惯：<strong>从第一行汇编就接好 earlyprintk</strong>（往 UART 基址写字符即可，几十行代码），否则前面任何一站出错你都只能对着黑屏猜。</p>
+<h3 id="2-4-打开-MMU-前的寄存器准备（cpu-init）"><a href="#2-4-打开-MMU-前的寄存器准备（cpu-init）" class="headerlink" title="2.4 打开 MMU 前的寄存器准备（cpu_init）"></a>2.4 打开 MMU 前的寄存器准备（cpu_init）</h3><p><strong>Xen 的做法</strong>（<code>arm64/head.S</code> 的 <code>cpu_init</code>，节选）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">FUNC_LOCAL(cpu_init)</span><br><span class="line">        PRINT_ID(&quot;- Initialize CPU -\r\n&quot;)</span><br><span class="line">        /* Set up memory attribute type tables */</span><br><span class="line">        ldr   x0, =MAIRVAL</span><br><span class="line">        msr   mair_el2, x0</span><br><span class="line">        /*</span><br><span class="line">         * Set up TCR_EL2:</span><br><span class="line">         * PS -- Based on ID_AA64MMFR0_EL1.PARange</span><br><span class="line">         */</span><br><span class="line">        ldr   x0, =(TCR_RES1|TCR_SH0_IS|TCR_ORGN0_WBWA|TCR_IRGN0_WBWA|TCR_T0SZ(64-48))</span><br><span class="line">        /* ID_AA64MMFR0_EL1[3:0] (PARange) corresponds to TCR_EL2[18:16] (PS) */</span><br><span class="line">        mrs   x1, ID_AA64MMFR0_EL1</span><br><span class="line">        /* Limit to 48 bits, 256TB PA range (#5) */</span><br><span class="line">        ubfm  x1, x1, #0, #3</span><br><span class="line">        mov   x2, #5</span><br><span class="line">        cmp   x1, x2</span><br><span class="line">        csel  x1, x1, x2, lt</span><br><span class="line">        bfi   x0, x1, #16, #3</span><br><span class="line">        msr   tcr_el2, x0</span><br><span class="line">        ldr   x0, =SCTLR_EL2_SET</span><br><span class="line">        msr   SCTLR_EL2, x0</span><br><span class="line">        isb</span><br><span class="line">        msr   spsel, #1</span><br><span class="line">        ret</span><br><span class="line">END(cpu_init)</span><br></pre></td></tr></table></figure>
+
+<p><strong>三个寄存器的作用</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>管什么</th>
+<th>Xen 设置了什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MAIR_EL2</code></td>
+<td>内存属性索引表：页表项里 3bit 的 AttrIndx 各代表“普通可缓存&#x2F;Device-nGnRE…”</td>
+<td>写入 Xen 定义好的 <code>MAIRVAL</code>，之后页表项用索引号引用属性</td>
+</tr>
+<tr>
+<td><code>TCR_EL2</code></td>
+<td>EL2 自己的翻译控制：地址位数（PS&#x2F;T0SZ）、缓存策略（IRGN&#x2F;ORGN）、共享性（SH）</td>
+<td>48 位地址、Inner&#x2F;Outer Write-Back、Inner Shareable；PS 字段<strong>从硬件寄存器 <strong>​</strong>​<code>ID_AA64MMFR0_EL1</code>​</strong>​ ** 的 PARange 读出来再填进去**（见下）</td>
+</tr>
+<tr>
+<td><code>SCTLR_EL2</code></td>
+<td>系统控制总开关：MMU 使能位 M、缓存位 C 等</td>
+<td>先写一个保守的 <code>SCTLR_EL2_SET</code>（关 MMU 状态的安全配置），MMU 留到下一站开</td>
+</tr>
+</tbody></table>
+<p><strong>三条无分支位操作</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ubfm  x1, x1, #0, #3     // 取 PARange 低 4 位（这颗 CPU 支持多大物理地址）</span><br><span class="line">mov   x2, #5</span><br><span class="line">cmp   x1, x2</span><br><span class="line">csel  x1, x1, x2, lt     // 超过 48bit(编码5) 就钳到 5（无条件指令，无分支）</span><br><span class="line">bfi   x0, x1, #16, #3    // 把钳好的 3bit 插进 TCR 的 PS 字段 [18:16]</span><br></pre></td></tr></table></figure>
+
+<p>为什么不写死 <code>PS=5</code>？不同芯片支持的物理地址宽度不同（36&#x2F;40&#x2F;44&#x2F;48&#x2F;52 位），所以要从 <code>ID_AA64MMFR0_EL1.PARange</code> 读出实际值再填。<code>csel/bfi</code> 全程无分支：MMU 和缓存还没开，分支预测和取指都有成本，能省就省。</p>
+<h3 id="2-5-恒等映射与开-MMU（enable-mmu）"><a href="#2-5-恒等映射与开-MMU（enable-mmu）" class="headerlink" title="2.5 恒等映射与开 MMU（enable_mmu）"></a>2.5 恒等映射与开 MMU（enable_mmu）</h3><p><strong>问题</strong>：写 <code>SCTLR_EL2.M=1</code> 的那一瞬间，取指立刻开始走 MMU 翻译。如果此时“下一条指令的虚拟地址”翻译不到正确的物理地址，CPU 会当场取指异常。解法是<strong>恒等映射（identity mapping）</strong> ：先建一套 <code>VA == PA</code> 的页表，开 MMU 后程序继续按原地址运行，之后再换成真正的虚拟地址布局。</p>
+<p><strong>Xen 的使能序列</strong>（<code>arm64/mmu/head.S</code>，节选，顺序如下）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">FUNC_LOCAL(enable_mmu)</span><br><span class="line">        mov   x4, x0    /* 页表物理地址 */</span><br><span class="line">        mov   x5, x1    /* 额外 SCTLR 标志 */</span><br><span class="line">        flush_xen_tlb_local   /* dsb nshst; tlbi alle2; dsb nsh; isb */</span><br><span class="line">        /* Write Xen&#x27;s PT&#x27;s paddr into TTBR0_EL2 */</span><br><span class="line">        msr   TTBR0_EL2, x4</span><br><span class="line">        isb</span><br><span class="line">        mrs   x0, SCTLR_EL2</span><br><span class="line">        orr   x0, x0, #SCTLR_Axx_ELx_M   /* Enable MMU */</span><br><span class="line">        orr   x0, x0, #SCTLR_Axx_ELx_C   /* Enable D-cache */</span><br><span class="line">        orr   x0, x0, x5                 /* Enable extra flags */</span><br><span class="line">        dsb   sy                         /* Flush PTE writes and finish reads */</span><br><span class="line">        msr   SCTLR_EL2, x0              /* now paging is enabled */</span><br><span class="line">        isb                              /* Now, flush the icache */</span><br><span class="line">        ret</span><br><span class="line">END(enable_mmu)</span><br></pre></td></tr></table></figure>
+
+<p><strong>屏障顺序的理由</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>指令</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>tlbi alle2</code> 夹在 <code>dsb</code> 里</td>
+<td>清掉 TLB 里可能的陈旧翻译，保证 MMU 一开就按新页表走</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>msr TTBR0_EL2</code> + <code>isb</code></td>
+<td>页表基址写进去后，<code>isb</code> 确保后续指令看到新基址</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>dsb sy</code> <strong>在写 SCTLR 之前</strong></td>
+<td>页表是内存里的数据，必须先确保写入对所有观察者可见，否则 MMU 硬件可能读到半成品页表项</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>msr SCTLR_EL2</code>（M 位置 1）</td>
+<td>这一刻起 MMU 真正生效</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>isb</code> <strong>紧跟其后</strong></td>
+<td>刷掉流水线里已经预取的、按旧状态取来的指令</td>
+</tr>
+</tbody></table>
+<p>可以记成：<strong>​<code>dsb</code>​</strong>​ ** 管数据（页表写完推到底），<strong>​</strong>​<code>isb</code>​<strong>​ ** 管指令（流水线重新来）；两者都不能少，顺序不能换</strong>。</p>
+<p><strong>你要学的</strong>：先用一个 1:1 的恒等映射页表（哪怕只映射你所在的内存段），确认 MMU 开启后程序仍能正常执行，再谈虚拟地址布局。Xen 真正的虚拟内存布局（高半区映射、拆恒等映射）是在 C 里 <code>setup_pagetables()</code> 做的，不必在汇编里一步到位。</p>
+<h3 id="2-6-跳入-C-世界"><a href="#2-6-跳入-C-世界" class="headerlink" title="2.6 跳入 C 世界"></a>2.6 跳入 C 世界</h3><p>MMU 开了、BSS 清零之后，Xen 做最后三步（<code>arm64/head.S</code> 的 <code>real_start</code> 尾部）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">primary_switched:</span><br><span class="line">        bl    zero_bss</span><br><span class="line">        PRINT(&quot;- Ready -\r\n&quot;)</span><br><span class="line">        /* Setup the arguments for start_xen and jump to C world */</span><br><span class="line">        mov   x0, x21           /* x0 := paddr(FDT) */</span><br><span class="line">        ldr   x1, =start_xen</span><br><span class="line">        b     launch            /* 设置好 SP 等之后 blr x1 */</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li><strong>把 DTB（设备树）物理地址放 <strong>​</strong>​<code>x0</code>​</strong>​ ** 传进 C**。这是 hypervisor 与引导器之间的主要交接物：内存多大、有哪些设备、哪些中断，都在这里。</li>
+<li>进 C 前要有一个<strong>够用的栈</strong>（Xen 用 per-CPU 的 boot stack）。C 函数会压栈，没有栈，<code>start_xen</code> 第一行就会出问题。</li>
+</ol>
+<p>到这里，汇编部分结束。</p>
+<h3 id="2-7-init-traps-与陷获配置"><a href="#2-7-init-traps-与陷获配置" class="headerlink" title="2.7 init_traps 与陷获配置"></a>2.7 init_traps 与陷获配置</h3><p>进了 <code>start_xen</code>，Xen 的第一件事是 <strong>​<code>init_traps()</code>​</strong> ，而不是解析设备或建真正的页表。源码注释说明理由（<code>arm/setup.c</code>）：</p>
+<blockquote>
+<p><code>/* Initialize traps early allow us to get backtrace when an error occurred */</code></p>
+</blockquote>
+<p>先装好异常处理，后面任何一步出错才有 backtrace 可看，而不是无声死机。</p>
+<p><code>init_traps()</code> 全文（<code>arm/traps.c</code>，逐字）。这段代码写五个寄存器：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">init_traps</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">/* Setup Hyp vector base. Note they might get updated with the</span></span><br><span class="line"><span class="comment">     * branch predictor hardening. */</span></span><br><span class="line">    WRITE_SYSREG((<span class="type">vaddr_t</span>)hyp_traps_vector, VBAR_EL2);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Trap Debug and Performance Monitor accesses */</span></span><br><span class="line">    WRITE_SYSREG(HDCR_TDRA|HDCR_TDOSA|HDCR_TDA|HDCR_TPM|HDCR_TPMCR, MDCR_EL2);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Trap CP15 c15 used for implementation defined registers, and ThumbEE */</span></span><br><span class="line">    WRITE_SYSREG(HSTR_T(<span class="number">15</span>) | (cpu_has_thumbee ? HSTR_TTEE : <span class="number">0</span>), HSTR_EL2);</span><br><span class="line"></span><br><span class="line">    WRITE_SYSREG(get_default_cptr_flags(), CPTR_EL2);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Configure HCR_EL2 with the bare minimum to run Xen until a guest</span></span><br><span class="line"><span class="comment">     * is scheduled. &#123;A,I,F&#125;MO bits are set to allow EL2 receiving interrupts. */</span></span><br><span class="line">    WRITE_SYSREG(HCR_AMO | HCR_FMO | HCR_IMO, HCR_EL2);</span><br><span class="line">    isb();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>五个寄存器的作用</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>寄存器</th>
+<th>作用</th>
+<th>Xen 的设置与意图</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>VBAR_EL2</code></td>
+<td>EL2 异常向量表基址</td>
+<td>指向 <code>hyp_traps_vector</code>——16 项 × 128 字节、2KB 对齐的向量表。<strong>从此异常由你接管，不再落进引导器</strong></td>
+</tr>
+<tr>
+<td><code>MDCR_EL2</code></td>
+<td>调试&#x2F;性能监视陷获</td>
+<td>全部置位：guest 不许碰调试寄存器和 PMU——既防信息泄漏，也防 guest 干扰你</td>
+</tr>
+<tr>
+<td><code>HSTR_EL2</code></td>
+<td>协处理器陷获</td>
+<td>陷住实现定义的 c15 寄存器等，guest 访问即掉 EL2</td>
+</tr>
+<tr>
+<td><code>CPTR_EL2</code></td>
+<td>FP&#x2F;SVE 陷获</td>
+<td>默认陷住浮点：这样 guest 第一次用 FPU 时会掉进来，你才知道该保存&#x2F;切换谁的 FP 上下文（惰性切换的前提）</td>
+</tr>
+<tr>
+<td><code>HCR_EL2</code></td>
+<td><strong>虚拟化总开关</strong></td>
+<td>初始只开 <code>AMO/FMO/IMO</code> 三位：SError&#x2F;IRQ&#x2F;FIQ 全部路由到 EL2。其余位（比如陷获 WFI 的 TWI）留到每个 vCPU 创建时按需配置——<strong>最小可用原则</strong></td>
+</tr>
+</tbody></table>
+<p><strong>你要学的</strong>：Type-1 hypervisor 要在其他初始化之前接管异常与陷获配置。顺序错了的典型后果是：解析 DTB 时出现缺页或对齐错误，异常向量还指向引导器，机器直接重启，死因也拿不到。</p>
+<p>向量表本身长这样（<code>arm64/entry.S</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">        .align  11                  /* 2KB 对齐，VBAR 要求 */</span><br><span class="line">FUNC(hyp_traps_vector)</span><br><span class="line">        ventry  hyp_sync_invalid    /* Synchronous EL2t */</span><br><span class="line">        ventry  hyp_irq_invalid     /* IRQ EL2t */</span><br><span class="line">        ventry  hyp_fiq_invalid     /* FIQ EL2t */</span><br><span class="line">        ventry  hyp_error_invalid   /* Error EL2t */</span><br><span class="line">        ventry  hyp_sync            /* Synchronous EL2h */</span><br><span class="line">        ventry  hyp_irq             /* IRQ EL2h */</span><br><span class="line">        ...</span><br><span class="line">        ventry  guest_sync          /* Synchronous 64-bit EL0/EL1 ← guest 陷入从这进 */</span><br><span class="line">        ventry  guest_irq           /* IRQ 64-bit EL0/EL1 */</span><br><span class="line">        ...</span><br></pre></td></tr></table></figure>
+
+<p>为什么是 16 项 × 128 字节：ARM ARM 规定向量表 2KB 对齐，按“异常来源（当前 EL 用哪个 SP &#x2F; 低一级 EL 是 64 还是 32 位）× 异常类型（Sync&#x2F;IRQ&#x2F;FIQ&#x2F;SError）”排列成 4×4，每项只有 128 字节，放不下大代码，所以每项只是一条跳转到真正处理函数的 <code>b</code>。</p>
+<p>guest 陷入后的完整链路是：<code>guest_sync</code>（汇编保存现场）→ <code>do_trap_guest_sync(regs)</code>（C 里读 <code>ESR_EL2</code> 的 EC 字段，用 switch 分发）→ 具体处理函数。这条链是后续 guest 支持的主要工作，属于“进 C 世界之后”的内容。</p>
+<h3 id="2-8-后续初始化顺序与依赖"><a href="#2-8-后续初始化顺序与依赖" class="headerlink" title="2.8 后续初始化顺序与依赖"></a>2.8 后续初始化顺序与依赖</h3><p><code>start_xen</code> 里有几十步初始化，顺序由依赖关系决定。Xen 源码里有几条明确的约束：</p>
+<table>
+<thead>
+<tr>
+<th>顺序约束</th>
+<th>原因（Xen 源码注释的原话逻辑）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>llc_coloring_init()</code> → <code>setup_pagetables()</code></td>
+<td>“Page tables must be setup after LLC coloring initialization because coloring info are required in order to create colored mappings”——页表要用缓存着色信息</td>
+</tr>
+<tr>
+<td>IOMMU 初始化 → guest Stage-2 页表体系</td>
+<td>guest 的 DMA 设备经 IOMMU 看到的地址空间必须与 Stage-2 一致，先建 IOMMU 再建 p2m，否则 DMA 就穿透隔离了</td>
+</tr>
+<tr>
+<td><code>alternatives</code>（指令动态补丁）放最后</td>
+<td>所有 CPU 特性探测完成后，统一把“通用指令”补丁成“本 CPU 最优指令”；提前打会被后来的初始化覆盖</td>
+</tr>
+</tbody></table>
+<p>另一条贯穿全程的纪律：<strong>所有 CPU 特性与勘误表（errata）走声明式表格 + MIDR 匹配</strong>。Xen 用 <code>MIDR_RANGE(model, min_rev, max_rev)</code> 把“哪颗 CPU 的哪个修订版有哪个 bug、需要什么 workaround”集中登记成表，启动时按当前 CPU 的 MIDR 自动套用。这张表最好在项目初期就建好，避免散落的 <code>if (midr == ...)</code> 遍布代码库。</p>
+<p>再看一个从 guest 返回前的收尾动作（<code>entry.S</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">        mrs     x0, elr_el2          /* 保存当前 ELR */</span><br><span class="line">        dsb     sy                   /* 等在途访存完成 */</span><br><span class="line">        msr     daifclr, #IFLAGS__A__   /* 解开 SError 屏蔽 */</span><br><span class="line">LABEL(abort_guest_exit_start)</span><br><span class="line">        isb                          /* ← pending SError 必落此窗口 */</span><br><span class="line">LABEL(abort_guest_exit_end)</span><br><span class="line">        msr     daifset, #IFLAGS__A__   /* 重新屏蔽 */</span><br><span class="line">        mrs     x1, elr_el2</span><br><span class="line">        cmp     x0, x1</span><br><span class="line">        cset    x19, ne              /* 不等 → 窗口内落过 SError */</span><br></pre></td></tr></table></figure>
+
+<p>它利用硬件行为：解开 SError 屏蔽后，若有挂起的异步错误，异常<strong>恰好落在 <strong>​</strong>​<code>dsb</code>​</strong>​ ** 和重新屏蔽之间那条孤零零的 <strong>​</strong>​<code>isb</code>​<strong>​ ** 上</strong>，硬件会把 <code>elr_el2</code> 改写成异常返回地址。比较前后两个 ELR，不等就说明窗口里出事过——用“一条指令的窗口”把异步错误变成可检测事件。这种手法现在不用写，但能说明一个原则：<strong>读 Xen 的汇编时，几乎每个看似多余的屏障背后都有一条 ARM ARM 的硬件行为规则</strong>。</p>
+<hr>
+<h2 id="第三章：最小骨架的构建与代码解读"><a href="#第三章：最小骨架的构建与代码解读" class="headerlink" title="第三章：最小骨架的构建与代码解读"></a>第三章：最小骨架的构建与代码解读</h2><p>完整代码放在附录 A，正文只保留讲解所需的片段。这份骨架在 QEMU <code>virt</code>、<code>virtualization=on</code> 下从 EL2 启动，完成 earlyprintk、恒等映射、MMU&#x2F;cache 和异常向量表，进入 C 世界打印 <code>Hello, world!</code> 与 DTB，最后停在 <code>wfi</code>。</p>
+<p>几个关键选择：Image 头 magic 位于偏移 56；<code>T0SZ=25</code>（39 位 VA）配 L1 的 1GB block；描述符带 <code>AF/SH/AttrIndx</code>；<code>VBAR_EL2</code> 在开 MMU 之前设置。</p>
+<p>它与第三部分七站的对应关系：</p>
+<table>
+<thead>
+<tr>
+<th>手册站点</th>
+<th>在本骨架中的位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>第 0 站：镜像头</td>
+<td><code>_start</code> 开头 64 字节的 Linux arm64 Image 头</td>
+</tr>
+<tr>
+<td>第 1 站：位置无关</td>
+<td>用 <code>adrp/add</code> 取符号实际地址；QEMU 固定加载时不会触发偏移问题，但写法保持位置无关</td>
+</tr>
+<tr>
+<td>第 2 站：EL2 检查</td>
+<td><code>mrs x5, CurrentEL</code> 检查 EL2</td>
+</tr>
+<tr>
+<td>第 3 站：CPU 配置</td>
+<td><code>MAIR_EL2</code> &#x2F; <code>TCR_EL2</code> &#x2F; <code>SCTLR_EL2</code></td>
+</tr>
+<tr>
+<td>第 4 站：恒等映射与开 MMU</td>
+<td>512 个 1GB block、<code>TTBR0_EL2</code>、<code>tlbi alle2</code>、置 <code>SCTLR_EL2.M/C/I</code></td>
+</tr>
+<tr>
+<td>第 5 站：进 C</td>
+<td><code>x0 = DTB</code>，<code>bl hv_main</code></td>
+</tr>
+<tr>
+<td>第 6 站：init_traps</td>
+<td>2KB 向量表、<code>VBAR_EL2</code>、<code>HCR_EL2</code>、异常打印</td>
+</tr>
+<tr>
+<td>第 7 站：后续初始化</td>
+<td>本骨架未展开，留到 Stage-2 &#x2F; vCPU 阶段</td>
+</tr>
+</tbody></table>
+<h3 id="1-构建与运行"><a href="#1-构建与运行" class="headerlink" title="1 构建与运行"></a>1 构建与运行</h3><p>需要 <code>aarch64-none-elf-gcc</code>（含 binutils）和 <code>qemu-system-aarch64</code>。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">aarch64-none-elf-gcc -nostdlib -ffreestanding -c boot.S -o boot.o</span><br><span class="line">aarch64-none-elf-gcc -nostdlib -ffreestanding -c main.c -o main.o</span><br><span class="line">aarch64-none-elf-ld -Ttext 0x40080000 boot.o main.o -o hv.elf</span><br><span class="line">aarch64-none-elf-objcopy -O binary hv.elf hv.bin</span><br><span class="line">qemu-system-aarch64 -M virt,virtualization=on -cpu max -nographic -kernel hv.bin</span><br></pre></td></tr></table></figure>
+
+<p>预期输出：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">AB</span><br><span class="line">C</span><br><span class="line">Hello, world!</span><br><span class="line">DTB=0000000044000000</span><br><span class="line">D</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>A</code>：earlyprintk 已工作</li>
+<li><code>B</code>：MMU 已成功开启</li>
+<li><code>C</code>：已进入 C 世界</li>
+<li><code>Hello, world!</code>：C 代码、栈、<code>.rodata</code>、UART 的 Device 映射全部正常</li>
+<li><code>DTB=...</code>：QEMU 启动时放在 <code>x0</code> 的设备树地址被成功保存并打印</li>
+<li><code>D</code>：<code>VBAR_EL2</code> &#x2F; <code>HCR_EL2</code> 已配置</li>
+</ul>
+<p>最后程序停在 <code>wfi</code> 循环里，QEMU 不会自动退出；按 <code>Ctrl-A X</code> 结束。</p>
+<h3 id="2-代码解读"><a href="#2-代码解读" class="headerlink" title="2 代码解读"></a>2 代码解读</h3><h4 id="3-2-1-启动链路总览"><a href="#3-2-1-启动链路总览" class="headerlink" title="3.2.1 启动链路总览"></a>3.2.1 启动链路总览</h4><figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">QEMU 加载器</span><br><span class="line">  → _start（EL2，MMU 关闭）</span><br><span class="line">  → 保存 DTB、检查 EL2</span><br><span class="line">  → 设置 SP_EL2 和 VBAR_EL2</span><br><span class="line">  → 打印 &#x27;A&#x27;</span><br><span class="line">  → 配置 MAIR_EL2 / TCR_EL2 / SCTLR_EL2</span><br><span class="line">  → 建 512 项 1GB block 恒等映射</span><br><span class="line">  → 写 TTBR0_EL2、刷 TLB</span><br><span class="line">  → 开 MMU / D-cache / I-cache</span><br><span class="line">  → 打印 &#x27;B&#x27;</span><br><span class="line">  → hv_main（C 世界）</span><br><span class="line">  → 打印 C / Hello, world! / DTB</span><br><span class="line">  → 配置 HCR_EL2</span><br><span class="line">  → 打印 &#x27;D&#x27;</span><br><span class="line">  → wfi 循环</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-2-Image-头与加载约定"><a href="#3-2-2-Image-头与加载约定" class="headerlink" title="3.2.2 Image 头与加载约定"></a>3.2.2 Image 头与加载约定</h4><p><code>_start</code> 开头 64 字节是 Linux arm64 Image 头：</p>
+<table>
+<thead>
+<tr>
+<th>偏移</th>
+<th>字段</th>
+<th>本代码的值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>code0</code></td>
+<td><code>b 1f</code></td>
+<td>跳过整个头，跳到真正的入口</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>code1</code></td>
+<td>0</td>
+<td>保留</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>text_offset</code></td>
+<td>0</td>
+<td>加载偏移；QEMU 的 loader 把内核加载基址定为 <code>0x40080000</code></td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>image_size</code></td>
+<td><code>_edata - _start</code></td>
+<td>文件镜像大小，不含 <code>.bss</code></td>
+</tr>
+<tr>
+<td>24</td>
+<td><code>flags</code></td>
+<td>0</td>
+<td>小端、4KB 页</td>
+</tr>
+<tr>
+<td>32–55</td>
+<td><code>res2..res4</code></td>
+<td>0</td>
+<td>保留</td>
+</tr>
+<tr>
+<td>56</td>
+<td><code>magic</code></td>
+<td><code>0x644d5241</code></td>
+<td><code>&quot;ARM\x64&quot;</code></td>
+</tr>
+<tr>
+<td>60</td>
+<td><code>res5</code></td>
+<td>0</td>
+<td>保留</td>
+</tr>
+</tbody></table>
+<p>这里的 <strong>magic 必须在偏移 56</strong>。如果写成偏移 52，QEMU 会认为这不是合法的 Image 头，退化成“裸二进制加载”。在 QEMU 上可能仍能跑，但换到 U-Boot <code>booti</code> 或其他加载器就会出问题。</p>
+<p>QEMU 的 <code>-kernel</code> 加载器把镜像放到 <code>0x40080000</code>，启动 CPU 时把 DTB 地址放进 <code>x0</code>，PC 指向 <code>0x40080000</code>。所以代码第一件事是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mov x22, x0</span><br></pre></td></tr></table></figure>
+
+<p>把 DTB 指针保存到 callee-saved 的 <code>x22</code>，后面进 C 时再放回 <code>x0</code>。DTB 是 hypervisor 和引导器之间的主要交接物：内存大小、设备、中断控制器等信息都在里面。</p>
+<h4 id="3-2-3-EL2-检查、栈和向量表"><a href="#3-2-3-EL2-检查、栈和向量表" class="headerlink" title="3.2.3 EL2 检查、栈和向量表"></a>3.2.3 EL2 检查、栈和向量表</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mrs x5, CurrentEL</span><br><span class="line">lsr x5, x5, #2</span><br><span class="line">cmp x5, #2</span><br><span class="line">b.ne hang_no_el2</span><br></pre></td></tr></table></figure>
+
+<p><code>CurrentEL[3:2]</code> 是当前异常级别。右移 2 位后：</p>
+<ul>
+<li>1 → EL1</li>
+<li>2 → EL2</li>
+<li>3 → EL3</li>
+</ul>
+<p>只有 EL2 才能访问 <code>HCR_EL2</code>、<code>VTTBR_EL2</code> 等虚拟化寄存器，所以第一件事就是确认自己在 EL2。QEMU 命令里的 <code>virtualization=on</code> 才会让 CPU 从 EL2 起步；否则会打印 <code>N</code> 后停机。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">msr SPSel, #1</span><br><span class="line">adrp x0, _stack_top</span><br><span class="line">add x0, x0, :lo12:_stack_top</span><br><span class="line">mov sp, x0</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>SPSel=1</code> 表示当前使用 <code>SP_EL2</code>，即 EL2h 模式。</li>
+<li><code>_stack_top</code> 指向 <code>.bss</code> 中 16KB 栈的栈顶，栈向下增长。</li>
+<li>必须先把栈建好，后面 C 函数和异常处理才能压栈。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">adrp x0, hyp_vectors</span><br><span class="line">add x0, x0, :lo12:hyp_vectors</span><br><span class="line">msr VBAR_EL2, x0</span><br><span class="line">isb</span><br></pre></td></tr></table></figure>
+
+<p><code>VBAR_EL2</code> 是异常向量表基址，要求 <strong>2KB 对齐</strong>。这里在开 MMU 之前就装好，原因是：如果页表有错，开 MMU 后的第一条取指就可能异常；如果这时 <code>VBAR_EL2</code> 还是 0，CPU 会跳到 <code>0x200</code> 之类的无效地址，连错误原因都看不到。</p>
+<h4 id="3-2-4-MAIR-EL2、TCR-EL2、SCTLR-EL2"><a href="#3-2-4-MAIR-EL2、TCR-EL2、SCTLR-EL2" class="headerlink" title="3.2.4 MAIR_EL2、TCR_EL2、SCTLR_EL2"></a>3.2.4 MAIR_EL2、TCR_EL2、SCTLR_EL2</h4><p><strong>MAIR_EL2</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov x0, #0x44ff</span><br><span class="line">msr MAIR_EL2, x0</span><br></pre></td></tr></table></figure>
+
+<p><code>0x44FF</code> 的低 16 位定义了两个属性：</p>
+<table>
+<thead>
+<tr>
+<th>Attr</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Attr0</td>
+<td><code>0xFF</code></td>
+<td>Normal，Inner&#x2F;Outer Write-Back Write-Allocate</td>
+</tr>
+<tr>
+<td>Attr1</td>
+<td><code>0x44</code></td>
+<td>Device-nGnRE</td>
+</tr>
+</tbody></table>
+<p>页表描述符里的 <code>AttrIndx</code> 会索引这两个属性。普通 RAM 用 Attr0，UART&#x2F;GIC 等 MMIO 用 Attr1。</p>
+<p><strong>TCR_EL2</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movz x0, #0x3f19</span><br><span class="line">movk x0, #0x2, lsl #16</span><br><span class="line">msr TCR_EL2, x0</span><br></pre></td></tr></table></figure>
+
+<p>写入值 <code>0x0000000000023F19</code>：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>T0SZ[5:0]</code></td>
+<td>25</td>
+<td>VA 位数 &#x3D; 64 - 25 &#x3D; <strong>39 位</strong></td>
+</tr>
+<tr>
+<td><code>IRGN0[9:8]</code></td>
+<td>3</td>
+<td>页表遍历 Inner Write-Back</td>
+</tr>
+<tr>
+<td><code>ORGN0[11:10]</code></td>
+<td>3</td>
+<td>页表遍历 Outer Write-Back</td>
+</tr>
+<tr>
+<td><code>SH0[13:12]</code></td>
+<td>3</td>
+<td>Inner Shareable</td>
+</tr>
+<tr>
+<td><code>TG0[15:14]</code></td>
+<td>0</td>
+<td>4KB 粒度</td>
+</tr>
+<tr>
+<td><code>PS[18:16]</code></td>
+<td>2</td>
+<td>40 位物理地址</td>
+</tr>
+</tbody></table>
+<p><code>PS=2</code> 对应 QEMU <code>virt</code> 的 40 位物理地址。换平台时应像 Xen 那样读 <code>ID_AA64MMFR0_EL1.PARange</code> 再填，不要沿用这个固定值（见第 3 站）。</p>
+<p>关键点：<strong>4KB 粒度 + 39 位 VA → 从 level 1 开始查表</strong>。</p>
+<ul>
+<li>L1 每项覆盖 1GB</li>
+<li>L2 每项覆盖 2MB</li>
+<li>L3 每项覆盖 4KB</li>
+</ul>
+<p>因此只需要一张 4KB 的 L1 表，用 1GB block 就能把低 512GB 恒等映射完。</p>
+<p>如果按 48 位 VA 配置（<code>T0SZ=16</code>），首级会变成 <strong>L0</strong>。L0 表项只能是 table 描述符，<strong>不允许 block 描述符</strong>；把 L1 的 1GB&#x2F;2MB block 直接填进 L0，开 MMU 后必然 translation fault。</p>
+<p><strong>SCTLR_EL2</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movz x0, #0x0800</span><br><span class="line">movk x0, #0x30d0, lsl #16</span><br><span class="line">msr SCTLR_EL2, x0</span><br></pre></td></tr></table></figure>
+
+<p>第一次写入 <code>0x30D00800</code>：</p>
+<ul>
+<li>保持 <code>M=0</code>（MMU 关）、<code>C=0</code>（D-cache 关）、<code>I=0</code>（I-cache 关）</li>
+<li>把架构规定为 RES1 的位先置 1，避免写 0 造成不可预测行为</li>
+</ul>
+<p>等页表和 <code>TTBR0_EL2</code> 都准备好后：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">movz x0, #0x1805</span><br><span class="line">movk x0, #0x30d0, lsl #16</span><br><span class="line">msr SCTLR_EL2, x0</span><br></pre></td></tr></table></figure>
+
+<p>第二次写入 <code>0x30D01805</code>，在 RES1 基础上打开：</p>
+<table>
+<thead>
+<tr>
+<th>位</th>
+<th>名称</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td><code>M</code></td>
+<td>MMU</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>C</code></td>
+<td>D-cache</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>I</code></td>
+<td>I-cache</td>
+</tr>
+</tbody></table>
+<p><code>isb</code> 确保后续指令看到新的系统控制状态。</p>
+<h4 id="3-2-5-恒等映射与开-MMU"><a href="#3-2-5-恒等映射与开-MMU" class="headerlink" title="3.2.5 恒等映射与开 MMU"></a>3.2.5 恒等映射与开 MMU</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">adrp x0, boot_pgtable</span><br><span class="line">add  x0, x0, :lo12:boot_pgtable</span><br><span class="line">mov  x1, #0</span><br><span class="line">2:</span><br><span class="line">lsl  x2, x1, #30        /* PA = index * 1GB */</span><br><span class="line">mov  x3, #0x701         /* Normal */</span><br><span class="line">cbnz x1, 3f</span><br><span class="line">mov  x3, #0x705         /* entry 0: Device */</span><br><span class="line">3:</span><br><span class="line">orr  x2, x2, x3</span><br><span class="line">str  x2, [x0, x1, lsl #3]</span><br><span class="line">add  x1, x1, #1</span><br><span class="line">cmp  x1, #512</span><br><span class="line">b.lt 2b</span><br></pre></td></tr></table></figure>
+
+<p><code>boot_pgtable</code> 是 4KB 对齐的 L1 表，共 512 项。每项描述 1GB：</p>
+<ul>
+<li><code>entry[0]</code> 覆盖 <code>0x00000000–0x3FFFFFFF</code>，映射为 <strong>Device</strong>，包括 GIC（<code>0x08000000</code>）、PL011 UART（<code>0x09000000</code>）、virtio-mmio（<code>0x0A000000</code>）等。</li>
+<li><code>entry[1]</code> 覆盖 <code>0x40000000–0x7FFFFFFF</code>，映射为 <strong>Normal</strong>，包括 QEMU RAM、内核镜像、页表、栈。</li>
+<li>其余项也填 Normal，覆盖未使用的地址空洞。</li>
+</ul>
+<p>把未使用的地址空洞也填成 Normal 只是骨架的简化做法；真实 hypervisor 只映射实际使用的区域，让非法访问继续 fault。</p>
+<p>描述符位域：</p>
+<table>
+<thead>
+<tr>
+<th>位域</th>
+<th><code>0x701</code> Normal</th>
+<th><code>0x705</code> Device</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>[1:0]</code></td>
+<td><code>01</code></td>
+<td><code>01</code></td>
+<td>有效 block</td>
+</tr>
+<tr>
+<td><code>[4:2]</code></td>
+<td><code>000</code></td>
+<td><code>001</code></td>
+<td>AttrIndx：0&#x3D;Normal，1&#x3D;Device</td>
+</tr>
+<tr>
+<td><code>[7:6]</code></td>
+<td><code>00</code></td>
+<td><code>00</code></td>
+<td>AP：读写，EL0 不可访问</td>
+</tr>
+<tr>
+<td><code>[9:8]</code></td>
+<td><code>11</code></td>
+<td><code>11</code></td>
+<td>Inner Shareable</td>
+</tr>
+<tr>
+<td><code>[10]</code></td>
+<td><code>1</code></td>
+<td><code>1</code></td>
+<td>AF（Access Flag）</td>
+</tr>
+<tr>
+<td><code>[47:30]</code></td>
+<td><code>index &lt;&lt; 30</code></td>
+<td><code>index &lt;&lt; 30</code></td>
+<td>1GB block 的输出地址位（PA[47:30]）</td>
+</tr>
+</tbody></table>
+<p>这里有两个容易写错的位域：</p>
+<ol>
+<li><strong>AF 必须置 1</strong>。如果 <code>AF=0</code>，第一次访问就会触发 Access Flag fault；只写 <code>bit0=1</code> 就会漏掉 AF。</li>
+<li>**AttrIndx 在 **​ <strong>​<code>[4:2]</code>​</strong> ，不是单独某一位。<code>0x701</code> 和 <code>0x705</code> 才是正确的 Normal&#x2F;Device 描述符。</li>
+</ol>
+<p>运行时内存布局：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">0x00000000 - 0x3FFFFFFF   Device</span><br><span class="line">    0x08000000            GIC</span><br><span class="line">    0x09000000            PL011 UART</span><br><span class="line">    0x0A000000            virtio-mmio</span><br><span class="line"></span><br><span class="line">0x40000000 - 0x7FFFFFFF   Normal</span><br><span class="line">    0x40000000            RAM 基址</span><br><span class="line">    0x40080000            _start / 镜像</span><br><span class="line">    0x40094000            boot_pgtable（4KB）</span><br><span class="line">    0x40098000            _stack（16KB）</span><br><span class="line">    0x4009C000            _end</span><br><span class="line">    0x44000000            QEMU DTB（地址随 RAM 大小变化）</span><br></pre></td></tr></table></figure>
+
+<p>页表准备好后，按顺序写 <code>TTBR0_EL2</code>、刷 TLB：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">msr TTBR0_EL2, x0</span><br><span class="line">dsb sy</span><br><span class="line">isb</span><br><span class="line">tlbi alle2</span><br><span class="line">dsb sy</span><br><span class="line">isb</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>dsb sy</code>：确保页表写入对所有观察者可见</li>
+<li><code>isb</code>：确保后续指令看到新的 <code>TTBR0_EL2</code></li>
+<li><code>tlbi alle2</code>：失效 EL2 Stage-1 的全部 TLB</li>
+<li>再 <code>dsb/isb</code>：保证 TLB 失效完成</li>
+</ul>
+<p>最后写 <code>SCTLR_EL2</code> 打开 <code>M/C/I</code>。从这一条指令开始，取指和访存都走 MMU；能打印 <code>B</code> 就说明整条恒等映射链路是通的。</p>
+<h4 id="3-2-6-进入-C-世界"><a href="#3-2-6-进入-C-世界" class="headerlink" title="3.2.6 进入 C 世界"></a>3.2.6 进入 C 世界</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mov x0, x22     /* DTB */</span><br><span class="line">bl  hv_main</span><br></pre></td></tr></table></figure>
+
+<p>AAPCS64 规定第一个参数放 <code>x0</code>。<code>x22</code> 是 callee-saved 寄存器，前面保存的 DTB 地址不会被中间的汇编破坏。<code>bl</code> 把返回地址写入 <code>x30</code>，然后跳到 C 函数。</p>
+<p>C 代码能正常运行，说明：</p>
+<ul>
+<li><code>SP_EL2</code> 栈有效</li>
+<li>代码段、<code>.rodata</code>、栈所在的 RAM 都已映射</li>
+<li>UART 所在的 Device 区间已映射</li>
+<li>MMU 和 cache 配置没有破坏取指&#x2F;访存</li>
+</ul>
+<h4 id="3-2-7-异常向量表"><a href="#3-2-7-异常向量表" class="headerlink" title="3.2.7 异常向量表"></a>3.2.7 异常向量表</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">.balign 2048</span><br><span class="line">hyp_vectors:</span><br><span class="line">    /* 16 × 128B */</span><br></pre></td></tr></table></figure>
+
+<p>AArch64 向量表固定 16 项、每项 128 字节，按“异常来源 × 异常类型”排列：</p>
+<table>
+<thead>
+<tr>
+<th>偏移</th>
+<th>来源</th>
+<th>异常类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>0x000</code></td>
+<td>Current EL，SP0</td>
+<td>Sync &#x2F; IRQ &#x2F; FIQ &#x2F; SError</td>
+</tr>
+<tr>
+<td><code>0x200</code></td>
+<td>Current EL，SPx</td>
+<td>Sync &#x2F; IRQ &#x2F; FIQ &#x2F; SError</td>
+</tr>
+<tr>
+<td><code>0x400</code></td>
+<td>Lower EL，AArch64</td>
+<td>Sync &#x2F; IRQ &#x2F; FIQ &#x2F; SError</td>
+</tr>
+<tr>
+<td><code>0x600</code></td>
+<td>Lower EL，AArch32</td>
+<td>Sync &#x2F; IRQ &#x2F; FIQ &#x2F; SError</td>
+</tr>
+</tbody></table>
+<p>每组 4 项，顺序固定为 <strong>Sync、IRQ、FIQ、SError</strong>。</p>
+<p>当前代码 <code>SPSel=1</code>，所以 EL2 自己的同步异常走 <code>0x200</code> 这一组。每个表项只有 128 字节，放不下完整处理代码，因此只放一条 <code>b</code> 跳到真正的处理函数。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">exc_sync:</span><br><span class="line">    mov x0, #0      /* kind: 0=SYNC */</span><br><span class="line">exc_common:</span><br><span class="line">    mrs x1, ESR_EL2</span><br><span class="line">    mrs x2, FAR_EL2</span><br><span class="line">    mrs x3, ELR_EL2</span><br><span class="line">    bl  exc_report</span><br><span class="line">    b   hang</span><br></pre></td></tr></table></figure>
+
+<p>发生异常时，硬件会设置：</p>
+<ul>
+<li><code>ESR_EL2</code>：异常类型和原因（EC&#x2F;ISS）</li>
+<li><code>FAR_EL2</code>：出错的虚拟地址（地址异常时有效）</li>
+<li><code>ELR_EL2</code>：异常返回地址</li>
+<li><code>SPSR_EL2</code>：发生异常时的 PSTATE</li>
+</ul>
+<p>向量表入口先把 <code>kind</code>（0&#x3D;SYNC）放进 <code>x0</code>，<code>exc_common</code> 再把 <code>ESR/FAR/ELR</code> 放进 <code>x1–x3</code>，然后按 AAPCS64 调用 C 的 <code>exc_report()</code> 打印后停机。故意访问未映射地址时，可以看到类似：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[EXC SYNC] ESR=0000000096000004 FAR=0001000000000000 ELR=0000000040080108</span><br></pre></td></tr></table></figure>
+
+<p>这说明向量表、栈和 C 异常处理都是通的。</p>
+<p>注意：当前只是<strong>诊断用</strong>异常处理，不做现场保存&#x2F;恢复。以后要跑 guest，需要在 <code>Lower EL</code> 的表项里保存 guest 寄存器、读 <code>ESR_EL2.EC</code> 分发、处理 Stage-2 fault，再 <code>eret</code> 回去。</p>
+<h4 id="3-2-8-main-c：C-世界的初始化"><a href="#3-2-8-main-c：C-世界的初始化" class="headerlink" title="3.2.8 main.c：C 世界的初始化"></a>3.2.8 main.c：C 世界的初始化</h4><p><strong>系统寄存器写宏</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> WRITE_SYSREG(v, r) \</span></span><br><span class="line"><span class="meta">    __asm__ volatile(<span class="string">&quot;msr &quot;</span> #r <span class="string">&quot;, %0&quot;</span> :: <span class="string">&quot;r&quot;</span>((uint64_t)(v)))</span></span><br></pre></td></tr></table></figure>
+
+<p><code>#r</code> 把参数变成寄存器名字符串。例如：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">WRITE_SYSREG(hyp_vectors, VBAR_EL2);</span><br></pre></td></tr></table></figure>
+
+<p>展开成 <code>msr VBAR_EL2, xN</code>。</p>
+<p><strong>HCR_EL2</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_RW   (1u &lt;&lt; 31)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_AMO  (1u &lt;&lt; 5)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_FMO  (1u &lt;&lt; 4)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_IMO  (1u &lt;&lt; 3)</span></span><br></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>位</th>
+<th>名称</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>31</td>
+<td><code>RW</code></td>
+<td>EL1 使用 AArch64（0 则 AArch32）</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>AMO</code></td>
+<td>物理 SError 路由到 EL2</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>FMO</code></td>
+<td>物理 FIQ 路由到 EL2</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>IMO</code></td>
+<td>物理 IRQ 路由到 EL2</td>
+</tr>
+</tbody></table>
+<p>这是 hypervisor 的基本配置：低异常级的中断先陷到 EL2，由 hypervisor 决定是否注入给 guest。当前还没有 guest，也没有配置 GIC，所以这些位只是“准备好”，不会有实际中断。</p>
+<p><strong>UART 输出</strong>：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> UART_BASE 0x09000000UL</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> UART_DR   (*(volatile uint8_t *)(UART_BASE + 0x00))</span></span><br></pre></td></tr></table></figure>
+
+<p><code>volatile</code> 防止编译器把连续写 UART 的操作优化掉。<code>putc_()</code> 直接写数据寄存器，<code>puts_()</code> 循环输出字符串，<code>puthex()</code> 把 64 位值打成 16 个十六进制字符。</p>
+<p>这是简单的轮询输出，不检查 PL011 的 TX FIFO 是否满。QEMU 模型可以直接接受；真实 UART 通常要先读 <code>UARTFR</code> 的 <code>TXFF</code> 位，等 FIFO 有空位再写。</p>
+<p><strong>​<code>hv_main()</code>​</strong> ：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> <span class="title function_">hv_main</span><span class="params">(<span class="type">uint64_t</span> dtb)</span></span><br><span class="line">&#123;</span><br><span class="line">    puts_(<span class="string">&quot;\r\nC\r\n&quot;</span>);</span><br><span class="line">    puts_(<span class="string">&quot;Hello, world!\r\n&quot;</span>);</span><br><span class="line">    puts_(<span class="string">&quot;DTB=&quot;</span>);</span><br><span class="line">    puthex(dtb);</span><br><span class="line">    puts_(<span class="string">&quot;\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    WRITE_SYSREG(hyp_vectors, VBAR_EL2);</span><br><span class="line">    WRITE_SYSREG(HCR_RW | HCR_AMO | HCR_FMO | HCR_IMO, HCR_EL2);</span><br><span class="line">    __asm__ <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;isb&quot;</span>)</span>;</span><br><span class="line"></span><br><span class="line">    puts_(<span class="string">&quot;D\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">        __asm__ <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;wfi&quot;</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>流程：</p>
+<ol>
+<li>打印 <code>C</code>，证明已经进入 C 世界</li>
+<li>打印 <code>Hello, world!</code></li>
+<li>打印 QEMU 传进来的 DTB 地址</li>
+<li>再设一次 <code>VBAR_EL2</code>（汇编里已经设过，重复设置无害）</li>
+<li>配置 <code>HCR_EL2</code></li>
+<li>打印 <code>D</code></li>
+<li><code>wfi</code> 循环</li>
+</ol>
+<p><code>wfi</code> 在没有任何中断源时会停住 vCPU，QEMU 就静默下来。这是预期行为，不是卡死。</p>
+<h4 id="3-2-9-当前边界与下一步"><a href="#3-2-9-当前边界与下一步" class="headerlink" title="3.2.9 当前边界与下一步"></a>3.2.9 当前边界与下一步</h4><p>这个骨架已经具备：</p>
+<ul>
+<li>EL2 启动</li>
+<li>earlyprintk</li>
+<li>恒等映射 MMU</li>
+<li>D-cache &#x2F; I-cache</li>
+<li>2KB 异常向量表和异常诊断</li>
+<li>C 运行环境（栈、只读数据、MMIO）</li>
+</ul>
+<p>但还不是完整的 Type-1 hypervisor：</p>
+<ul>
+<li>没有配置 Stage-2 翻译（<code>VTCR_EL2</code>、<code>VTTBR_EL2</code>）</li>
+<li>没有创建&#x2F;启动 EL1 guest</li>
+<li>没有 GIC、定时器、虚拟中断注入</li>
+<li>没有保存&#x2F;恢复 guest 上下文</li>
+<li>异常处理目前只打印后停机，不恢复执行</li>
+<li>没有主动清 BSS（QEMU 启动时 RAM 默认清零；真实硬件需自己清）</li>
+<li>UART 输出没有检查 TX FIFO（QEMU 可用，真机建议补上）</li>
+</ul>
+<p>下一步通常按这个顺序推进：配 Stage-2 页表 → 准备 guest 镜像和 DTB → 初始化 GIC → 设置 <code>ELR_EL2/SPSR_EL2/SP_EL1</code> → <code>eret</code> 到 EL1。对应到 Xen，就是 <code>p2m</code>、<code>domain</code>、<code>vgic</code> 那几条线。</p>
+<hr>
+<h2 id="第四章：十个常见错误"><a href="#第四章：十个常见错误" class="headerlink" title="第四章：十个常见错误"></a>第四章：十个常见错误</h2><ol>
+<li><strong>​<code>ldr x0, =symbol</code>​</strong>​ ** 当运行地址用**——那是链接地址。MMU 开启前一律用 <code>adr/adrp</code>。QEMU 上能跑不代表真机能跑。</li>
+<li><strong>开 MMU 前忘了 <strong>​</strong>​<code>dsb sy</code>​</strong>——MMU 硬件读到半成品页表项，症状是随机取指异常，极难调试。</li>
+<li><strong>写完 SCTLR 忘了 <strong>​</strong>​<code>isb</code>​</strong>——流水线里预取的旧指令继续跑，表现为偶发异常。</li>
+<li><strong>恒等映射没映射“下一条指令”</strong> ——<code>msr SCTLR_EL2</code> 一生效，PC 所在 VA 必须能翻译到同一 PA。</li>
+<li><strong>​<code>VBAR_EL2</code>​</strong>​ ** 没 2KB 对齐**——写进去低位被硬件忽略，异常一来就跳到无效地址。用 <code>.balign 2048</code>（或 <code>.align 11</code>）。</li>
+<li><strong>进 C 前没栈</strong>——C 函数序言第一条 <code>stp</code> 就会写到无效内存。</li>
+<li><strong>EL2 检查失败后静默死机</strong>——earlyprintk 先接好，把 <code>CurrentEL</code> 打出来再停机。</li>
+<li><strong>TCR 的 PS 字段写死</strong>——换一颗物理地址位宽不同的芯片就会出问题。读 <code>ID_AA64MMFR0_EL1.PARange</code> 按实际值配置（学 Xen 的 <code>ubfm/csel/bfi</code>）。</li>
+<li><strong>​<code>HCR_EL2</code>​</strong>​ ** 一次开太多位**——先把 <code>AMO/FMO/IMO</code> 跑通，其余陷获位等 vCPU 机制有了再开；开多了 guest 一跑就掉进你没写处理的分支。</li>
+<li><strong>忘了 <strong>​</strong>​<code>msr SPSEL, #1</code>​</strong>​ ** 前后 SP 的含义变了**——EL2t&#x2F;EL2h 下 <code>sp</code> 指向不同的寄存器，混用会导致栈错误。</li>
+</ol>
+<hr>
+<h2 id="第五章：术语速查表"><a href="#第五章：术语速查表" class="headerlink" title="第五章：术语速查表"></a>第五章：术语速查表</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>EL0&#x2F;1&#x2F;2&#x2F;3</td>
+<td>ARM 特权级，数字越大权限越高；hypervisor 在 EL2</td>
+</tr>
+<tr>
+<td>EL2h &#x2F; EL2t</td>
+<td>EL2 下用不用 <code>SP_EL2</code> 的两种模式，由 <code>SPSel</code> 决定</td>
+</tr>
+<tr>
+<td>MMU</td>
+<td>内存管理单元，做 VA→PA 翻译</td>
+</tr>
+<tr>
+<td>Stage-1 &#x2F; Stage-2</td>
+<td>guest 自己的翻译 &#x2F; hypervisor 强加的第二层翻译（IPA→PA）</td>
+</tr>
+<tr>
+<td><code>TTBR0_EL2</code></td>
+<td>EL2 的 Stage-1 页表基址寄存器</td>
+</tr>
+<tr>
+<td><code>VTTBR_EL2</code></td>
+<td>Stage-2 页表基址（含 VMID），建 guest 时才用</td>
+</tr>
+<tr>
+<td><code>MAIR_EL2</code></td>
+<td>内存属性索引表（可缓存&#x2F;Device 等）</td>
+</tr>
+<tr>
+<td><code>TCR_EL2</code></td>
+<td>翻译控制：地址位宽、缓存策略、共享性</td>
+</tr>
+<tr>
+<td><code>SCTLR_EL2</code></td>
+<td>系统控制：M 位 &#x3D; MMU 开关，C 位 &#x3D; D-cache 开关</td>
+</tr>
+<tr>
+<td><code>HCR_EL2</code></td>
+<td>虚拟化总开关：哪些 guest 行为掉进 EL2、中断路由</td>
+</tr>
+<tr>
+<td><code>VBAR_EL2</code></td>
+<td>EL2 异常向量表基址（2KB 对齐，16×128B）</td>
+</tr>
+<tr>
+<td><code>ESR_EL2</code></td>
+<td>异常症状寄存器：EC 字段说明陷入原因</td>
+</tr>
+<tr>
+<td><code>ELR_EL2</code></td>
+<td>异常返回地址</td>
+</tr>
+<tr>
+<td><code>hvc</code> &#x2F; <code>smc</code></td>
+<td>guest→EL2 &#x2F; →EL3 的调用指令</td>
+</tr>
+<tr>
+<td><code>eret</code></td>
+<td>从高 EL 返回低 EL</td>
+</tr>
+<tr>
+<td><code>dsb</code> &#x2F; <code>isb</code></td>
+<td>数据同步屏障 &#x2F; 指令同步屏障</td>
+</tr>
+<tr>
+<td><code>tlbi alle2</code></td>
+<td>清空 EL2 全部 TLB</td>
+</tr>
+<tr>
+<td>DTB &#x2F; FDT</td>
+<td>设备树：引导器交给你的硬件清单</td>
+</tr>
+<tr>
+<td>phys-offset</td>
+<td>实际加载地址 − 链接地址</td>
+</tr>
+<tr>
+<td>恒等映射</td>
+<td><code>VA==PA</code> 的过渡页表，MMU 开启前后地址不变</td>
+</tr>
+<tr>
+<td>errata</td>
+<td>芯片硬件缺陷及对应 workaround</td>
+</tr>
+<tr>
+<td>MIDR</td>
+<td>CPU 型号&#x2F;修订版本号寄存器</td>
+</tr>
+<tr>
+<td>earlyprintk</td>
+<td>无驱动裸写 UART 的早期打印手段</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="第六章：后续学习路线"><a href="#第六章：后续学习路线" class="headerlink" title="第六章：后续学习路线"></a>第六章：后续学习路线</h2><p>跑通本手册的骨架（看到 A&#x2F;B&#x2F;C&#x2F;D 标记）之后，可以按这个顺序扩展你的 hypervisor；每一步都有对应的 Xen 实现可以对照精读：</p>
+<ol>
+<li><strong>真正的向量表与同步异常处理</strong>：写 16 项向量表 + <code>do_trap_sync</code> 雏形，能在异常时打印 <code>ESR_EL2</code> 和 backtrace（对应 Xen <code>entry.S</code> + <code>traps.c</code>）。</li>
+<li><strong>Stage-2 页表（p2m）</strong> ：给第一个 guest 建 <code>VTTBR_EL2</code> 映射（对应 Xen <code>mmu/p2m.c</code>，注意 break-before-make：改表项要先失效、刷 TLB、再写新值）。</li>
+<li><strong>创建第一个 vCPU 并 <strong>​</strong>​<code>eret</code>​</strong>​ ** 进 guest**：构造初始寄存器上下文，跑一段 guest 裸机代码（对应 Xen <code>domain.c</code>）。</li>
+<li><strong>hypercall 与陷入分发</strong>：实现 <code>hvc #0</code> 通道 + <code>ESR.EC</code> 的 switch 分发（对应 <code>do_trap_guest_sync</code> &#x2F; <code>do_trap_hypercall</code>；其中 <code>0xDEADBEEF</code> 寄存器投毒和 <code>regs-&gt;pc -= 4</code> 抢占重放两个技巧值得留意）。</li>
+<li><strong>中断虚拟化</strong>：GICv3 + vGIC，LR 寄存器注入虚拟中断（对应 <code>gic-v3.c</code> &#x2F; <code>vgic.c</code>）。</li>
+<li><strong>SMCCC 与 PSCI</strong>：让 guest 能开机、关机、调用固件服务（对应 <code>vsmc.c</code>）。</li>
+<li><strong>CPU errata 与 Spectre 缓解</strong>：建 MIDR 表、部署硬化向量（对应 <code>cpuerrata.c</code> &#x2F; <code>bpi.S</code>）。</li>
+<li><strong>SMP 多核启动</strong>：secondary CPU 走和 boot CPU 相同的七站，只是各自的栈与 per-CPU 数据不同（对应 <code>smpboot.c</code>）。</li>
+</ol>
+<p>每加一步，回到 Xen 对应文件对照精读——本手册配套的《Xen-AArch64-ARMv8-A 实现深度分析》报告里有这些函数的逐行讲解和交互式调用图。</p>
+<hr>
+<h2 id="附录-A：最小骨架完整代码"><a href="#附录-A：最小骨架完整代码" class="headerlink" title="附录 A：最小骨架完整代码"></a>附录 A：最小骨架完整代码</h2><p>下面两个文件与第四部分的解读对应，可直接保存后按 1 节的命令编译。</p>
+<h3 id="A-1-boot-S"><a href="#A-1-boot-S" class="headerlink" title="A.1 boot.S"></a>A.1 boot.S</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br></pre></td><td class="code"><pre><span class="line">    .section .text.head, &quot;ax&quot;</span><br><span class="line">    .globl _start</span><br><span class="line">    .globl hyp_vectors</span><br><span class="line">    .globl exc_report</span><br><span class="line"></span><br><span class="line">/*</span><br><span class="line"> * ARM64 Linux Image 头（QEMU -kernel 会识别它）。</span><br><span class="line"> * 字段必须按 ABI 摆正：magic 在偏移 56，而不是 52。</span><br><span class="line"> */</span><br><span class="line">_start:</span><br><span class="line">    b       1f</span><br><span class="line">    .word   0                   /* code1 */</span><br><span class="line">    .quad   0                   /* text_offset：QEMU 的加载基址已是 0x40080000 */</span><br><span class="line">    .quad   _edata - _start     /* image_size：只算加载到文件里的内容，不含 .bss */</span><br><span class="line">    .quad   0                   /* flags：小端，4KB 页 */</span><br><span class="line">    .quad   0, 0, 0             /* res2..res4 */</span><br><span class="line">    .word   0x644d5241          /* &quot;ARM\x64&quot; */</span><br><span class="line">    .word   0                   /* res5 */</span><br><span class="line">1:</span><br><span class="line">    mov     x22, x0             /* QEMU 启动桩通过 x0 传入 DTB 地址 */</span><br><span class="line">    mov     x21, #0x09000000    /* PL011 UART */</span><br><span class="line"></span><br><span class="line">    /* ---- EL2 门禁 ---- */</span><br><span class="line">    mrs     x5, CurrentEL</span><br><span class="line">    lsr     x5, x5, #2</span><br><span class="line">    cmp     x5, #2</span><br><span class="line">    b.ne    hang_no_el2</span><br><span class="line"></span><br><span class="line">    /* ---- 先建立栈，异常处理才有地方可落 ---- */</span><br><span class="line">    msr     SPSel, #1           /* 使用 SP_EL2 */</span><br><span class="line">    adrp    x0, _stack_top</span><br><span class="line">    add     x0, x0, :lo12:_stack_top</span><br><span class="line">    mov     sp, x0</span><br><span class="line"></span><br><span class="line">    /* ---- 尽早装向量表：MMU 一开若有映射错误，至少能打印 ESR/FAR ---- */</span><br><span class="line">    adrp    x0, hyp_vectors</span><br><span class="line">    add     x0, x0, :lo12:hyp_vectors</span><br><span class="line">    msr     VBAR_EL2, x0</span><br><span class="line">    isb</span><br><span class="line"></span><br><span class="line">    /* ---- earlyprintk: PL011 UART @ 0x09000000 ---- */</span><br><span class="line">    mov     w10, #&#x27;A&#x27;</span><br><span class="line">    strb    w10, [x21]</span><br><span class="line"></span><br><span class="line">    /* ---- MAIR：Attr0=Normal WB，Attr1=Device-nGnRE ---- */</span><br><span class="line">    mov     x0, #0x44ff</span><br><span class="line">    msr     MAIR_EL2, x0</span><br><span class="line"></span><br><span class="line">    /*</span><br><span class="line">     * TCR_EL2：T0SZ=25 (39-bit VA)，4KB 粒度，从 level 1 开始走表；</span><br><span class="line">     * IRGN0/ORGN0=3 (Normal WB)，SH0=3，PS=2 (40-bit PA)。</span><br><span class="line">     */</span><br><span class="line">    movz    x0, #0x3f19</span><br><span class="line">    movk    x0, #0x2, lsl #16</span><br><span class="line">    msr     TCR_EL2, x0</span><br><span class="line"></span><br><span class="line">    /* SCTLR_EL2：先保持 MMU/D-cache/I-cache 关闭（RES1 位按规范置 1） */</span><br><span class="line">    movz    x0, #0x0800</span><br><span class="line">    movk    x0, #0x30d0, lsl #16</span><br><span class="line">    msr     SCTLR_EL2, x0</span><br><span class="line">    isb</span><br><span class="line"></span><br><span class="line">    /*</span><br><span class="line">     * 恒等映射低 512GB，用 1GB block 描述符。</span><br><span class="line">     * entry[0] 覆盖 0x00000000-0x3fffffff（UART/GIC 等设备）→ Device。</span><br><span class="line">     * 其余 entry 覆盖 RAM 及空洞 → Normal，1GB block 的 AF/SH/Attr 需置对。</span><br><span class="line">     * 旧代码只置了 bit0（valid），AF=0，且 T0SZ=16 时首级是 L0，</span><br><span class="line">     * L0 不允许 block 描述符，所以开 MMU 立刻 translation fault。</span><br><span class="line">     */</span><br><span class="line">    adrp    x0, boot_pgtable</span><br><span class="line">    add     x0, x0, :lo12:boot_pgtable</span><br><span class="line">    mov     x1, #0</span><br><span class="line">2:</span><br><span class="line">    lsl     x2, x1, #30         /* PA = index * 1GB */</span><br><span class="line">    mov     x3, #0x701          /* Normal, AttrIdx=0, SH=3, AF=1, block */</span><br><span class="line">    cbnz    x1, 3f</span><br><span class="line">    mov     x3, #0x705          /* entry 0: Device, AttrIdx=1 */</span><br><span class="line">3:</span><br><span class="line">    orr     x2, x2, x3</span><br><span class="line">    str     x2, [x0, x1, lsl #3]</span><br><span class="line">    add     x1, x1, #1</span><br><span class="line">    cmp     x1, #512</span><br><span class="line">    b.lt    2b</span><br><span class="line"></span><br><span class="line">    msr     TTBR0_EL2, x0</span><br><span class="line">    dsb     sy</span><br><span class="line">    isb</span><br><span class="line">    tlbi    alle2</span><br><span class="line">    dsb     sy</span><br><span class="line">    isb</span><br><span class="line"></span><br><span class="line">    /* 开 MMU、D-cache、I-cache */</span><br><span class="line">    movz    x0, #0x1805         /* RES1 | M | C | I */</span><br><span class="line">    movk    x0, #0x30d0, lsl #16</span><br><span class="line">    msr     SCTLR_EL2, x0</span><br><span class="line">    isb</span><br><span class="line"></span><br><span class="line">    mov     w10, #&#x27;B&#x27;</span><br><span class="line">    strb    w10, [x21]</span><br><span class="line"></span><br><span class="line">    /* ---- 进 C ---- */</span><br><span class="line">    mov     x0, x22             /* DTB */</span><br><span class="line">    bl      hv_main             /* 永不返回 */</span><br><span class="line"></span><br><span class="line">hang_no_el2:</span><br><span class="line">    mov     w10, #&#x27;N&#x27;</span><br><span class="line">    strb    w10, [x21]</span><br><span class="line"></span><br><span class="line">hang:</span><br><span class="line">    wfe</span><br><span class="line">    b       hang</span><br><span class="line"></span><br><span class="line">    /*</span><br><span class="line">     * 异常向量表，16 × 128B，必须 2KB 对齐。</span><br><span class="line">     * 现在运行在 EL2h（SPSel=1），同步异常走 0x200。</span><br><span class="line">     */</span><br><span class="line">    .balign 2048</span><br><span class="line">hyp_vectors:</span><br><span class="line">    /* Current EL with SP0 */</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_sync</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_irq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_fiq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_serr</span><br><span class="line"></span><br><span class="line">    /* Current EL with SPx */</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_sync</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_irq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_fiq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_serr</span><br><span class="line"></span><br><span class="line">    /* Lower EL using AArch64 */</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_sync</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_irq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_fiq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_serr</span><br><span class="line"></span><br><span class="line">    /* Lower EL using AArch32 */</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_sync</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_irq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_fiq</span><br><span class="line">    .balign 128</span><br><span class="line">    b       exc_serr</span><br><span class="line"></span><br><span class="line">/* kind: 0=SYNC 1=IRQ 2=FIQ 3=SError */</span><br><span class="line">exc_sync:</span><br><span class="line">    mov     x0, #0</span><br><span class="line">    b       exc_common</span><br><span class="line">exc_irq:</span><br><span class="line">    mov     x0, #1</span><br><span class="line">    b       exc_common</span><br><span class="line">exc_fiq:</span><br><span class="line">    mov     x0, #2</span><br><span class="line">    b       exc_common</span><br><span class="line">exc_serr:</span><br><span class="line">    mov     x0, #3</span><br><span class="line">exc_common:</span><br><span class="line">    mrs     x1, ESR_EL2</span><br><span class="line">    mrs     x2, FAR_EL2</span><br><span class="line">    mrs     x3, ELR_EL2</span><br><span class="line">    bl      exc_report</span><br><span class="line">    b       hang</span><br><span class="line"></span><br><span class="line">    .section .bss</span><br><span class="line">    .align 12</span><br><span class="line">boot_pgtable:</span><br><span class="line">    .space 4096</span><br><span class="line">    .align 14</span><br><span class="line">_stack:</span><br><span class="line">    .space 16384</span><br><span class="line">_stack_top:</span><br><span class="line">_end:</span><br></pre></td></tr></table></figure>
+
+<h3 id="A-2-main-c"><a href="#A-2-main-c" class="headerlink" title="A.2 main.c"></a>A.2 main.c</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdint.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> WRITE_SYSREG(v, r) __asm__ volatile(<span class="string">&quot;msr &quot;</span> #r <span class="string">&quot;, %0&quot;</span> :: <span class="string">&quot;r&quot;</span>((uint64_t)(v)))</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_RW   (1u &lt;&lt; 31)  <span class="comment">/* EL1 运行在 AArch64 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_AMO  (1u &lt;&lt; 5)   <span class="comment">/* SError 路由到 EL2 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_FMO  (1u &lt;&lt; 4)   <span class="comment">/* FIQ   路由到 EL2 */</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> HCR_IMO  (1u &lt;&lt; 3)   <span class="comment">/* IRQ   路由到 EL2 */</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> UART_BASE 0x09000000UL</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> UART_DR   (*(volatile uint8_t *)(UART_BASE + 0x00))</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="type">char</span> hyp_vectors[];   <span class="comment">/* 2KB 对齐向量表（16 × 128B） */</span></span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">putc_</span><span class="params">(<span class="type">char</span> c)</span></span><br><span class="line">&#123;</span><br><span class="line">    UART_DR = (<span class="type">uint8_t</span>)c;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">puts_</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *s)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (*s)</span><br><span class="line">        putc_(*s++);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">static</span> <span class="type">void</span> <span class="title function_">puthex</span><span class="params">(<span class="type">uint64_t</span> v)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">static</span> <span class="type">const</span> <span class="type">char</span> hex[] = <span class="string">&quot;0123456789abcdef&quot;</span>;</span><br><span class="line">    <span class="type">char</span> buf[<span class="number">16</span>];</span><br><span class="line">    <span class="type">int</span> i;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">16</span>; i++) &#123;</span><br><span class="line">        buf[<span class="number">15</span> - i] = hex[v &amp; <span class="number">0xf</span>];</span><br><span class="line">        v &gt;&gt;= <span class="number">4</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">16</span>; i++)</span><br><span class="line">        putc_(buf[i]);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * 从向量表调用。ESR/FAR/ELR 已经由汇编取好。</span></span><br><span class="line"><span class="comment"> * 这里只打印，然后停住，方便用 QEMU -d int 对照。</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">exc_report</span><span class="params">(<span class="type">uint64_t</span> kind, <span class="type">uint64_t</span> esr, <span class="type">uint64_t</span> far, <span class="type">uint64_t</span> elr)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">const</span> <span class="type">char</span> *name;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">switch</span> (kind) &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">0</span>:  name = <span class="string">&quot;SYNC&quot;</span>; <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">1</span>:  name = <span class="string">&quot;IRQ&quot;</span>;  <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">case</span> <span class="number">2</span>:  name = <span class="string">&quot;FIQ&quot;</span>;  <span class="keyword">break</span>;</span><br><span class="line">    <span class="keyword">default</span>: name = <span class="string">&quot;SERR&quot;</span>; <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    puts_(<span class="string">&quot;\r\n[EXC &quot;</span>);</span><br><span class="line">    puts_(name);</span><br><span class="line">    puts_(<span class="string">&quot;] ESR=&quot;</span>);</span><br><span class="line">    puthex(esr);</span><br><span class="line">    puts_(<span class="string">&quot; FAR=&quot;</span>);</span><br><span class="line">    puthex(far);</span><br><span class="line">    puts_(<span class="string">&quot; ELR=&quot;</span>);</span><br><span class="line">    puthex(elr);</span><br><span class="line">    puts_(<span class="string">&quot;\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">        __asm__ <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;wfi&quot;</span>)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">void</span> <span class="title function_">hv_main</span><span class="params">(<span class="type">uint64_t</span> dtb)</span></span><br><span class="line">&#123;</span><br><span class="line">    puts_(<span class="string">&quot;\r\nC\r\n&quot;</span>);</span><br><span class="line">    puts_(<span class="string">&quot;Hello, world!\r\n&quot;</span>);</span><br><span class="line">    puts_(<span class="string">&quot;DTB=&quot;</span>);</span><br><span class="line">    puthex(dtb);</span><br><span class="line">    puts_(<span class="string">&quot;\r\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ---- init_traps ---- */</span></span><br><span class="line">    WRITE_SYSREG(hyp_vectors, VBAR_EL2);</span><br><span class="line">    WRITE_SYSREG(HCR_RW | HCR_AMO | HCR_FMO | HCR_IMO, HCR_EL2);</span><br><span class="line">    __asm__ <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;isb&quot;</span>)</span>;</span><br><span class="line"></span><br><span class="line">    puts_(<span class="string">&quot;D\r\n&quot;</span>);             <span class="comment">/* 陷阱装好 */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (;;)</span><br><span class="line">        __asm__ <span class="title function_">volatile</span><span class="params">(<span class="string">&quot;wfi&quot;</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<p><em>本手册基于 Xen 源码（<em>​</em>​<code>xen.git</code>​</em>​ * @ <em>​</em>​<code>6b30eca0e388</code>​<em>​ <em>，<em>​</em>​<code>xen/arch/arm</code>​</em>​ * 下真实代码引用；指令逐字，注释有中文改写）与 ARM ARM（DDI 0487）编写，仅供学习与研究。</em></p>
+
+  </div>
+</article>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+        
+          <li><a href="/about/">About</a></li>
+        
+          <li><a href="/archives/">Writing</a></li>
+        
+          <li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li>
+        
+      </ul>
+    </div>
+
+    
+    
+      <div id="toc-footer" style="display: none">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#AArch64-Type-1-Hypervisor-%E5%85%A5%E9%97%A8%E6%89%8B%E5%86%8C%EF%BC%9A%E8%B7%9F%E7%9D%80-Xen-%E5%AD%A6%EF%BC%8C%E4%BB%8E%E9%9B%B6%E5%86%99%E5%88%B0-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.</span> <span class="toc-text">AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%9A%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5"><span class="toc-number">1.1.</span> <span class="toc-text">第一章：基础概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1-Type-1-%E4%B8%8E-Type-2"><span class="toc-number">1.1.1.</span> <span class="toc-text">1.1 Type-1 与 Type-2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2-ARM-%E5%BC%82%E5%B8%B8%E7%BA%A7%E5%88%AB-EL0%E2%80%93EL3"><span class="toc-number">1.1.2.</span> <span class="toc-text">1.2 ARM 异常级别 EL0–EL3</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3-%E4%B8%A4%E6%AE%B5%E5%BC%8F%E5%9C%B0%E5%9D%80%E7%BF%BB%E8%AF%91%EF%BC%9AStage-1-%E4%B8%8E-Stage-2"><span class="toc-number">1.1.3.</span> <span class="toc-text">1.3 两段式地址翻译：Stage-1 与 Stage-2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4-%E9%99%B7%E5%85%A5%EF%BC%88trap%EF%BC%89%E4%B8%8E%E6%95%8F%E6%84%9F%E6%93%8D%E4%BD%9C%E6%8B%A6%E6%88%AA"><span class="toc-number">1.1.4.</span> <span class="toc-text">1.4 陷入（trap）与敏感操作拦截</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-5-%E4%B8%A4%E4%BB%BD%E6%A0%B8%E5%BF%83%E6%96%87%E6%A1%A3"><span class="toc-number">1.1.5.</span> <span class="toc-text">1.5 两份核心文档</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%9AXen-%E5%90%AF%E5%8A%A8%E7%9A%84%E4%B8%83%E4%B8%AA%E9%98%B6%E6%AE%B5"><span class="toc-number">1.2.</span> <span class="toc-text">第二章：Xen 启动的七个阶段</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-%E9%95%9C%E5%83%8F%E5%A4%B4%E4%B8%8E%E5%8A%A0%E8%BD%BD%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.2.1.</span> <span class="toc-text">2.1 镜像头与加载约定</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-%E4%BD%8D%E7%BD%AE%E6%97%A0%E5%85%B3%E4%BB%A3%E7%A0%81%E4%B8%8E-phys-offset"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.2 位置无关代码与 phys-offset</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-3-EL2-%E6%A3%80%E6%9F%A5%EF%BC%88check-cpu-mode%EF%BC%89"><span class="toc-number">1.2.3.</span> <span class="toc-text">2.3 EL2 检查（check_cpu_mode）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-4-%E6%89%93%E5%BC%80-MMU-%E5%89%8D%E7%9A%84%E5%AF%84%E5%AD%98%E5%99%A8%E5%87%86%E5%A4%87%EF%BC%88cpu-init%EF%BC%89"><span class="toc-number">1.2.4.</span> <span class="toc-text">2.4 打开 MMU 前的寄存器准备（cpu_init）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-5-%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84%E4%B8%8E%E5%BC%80-MMU%EF%BC%88enable-mmu%EF%BC%89"><span class="toc-number">1.2.5.</span> <span class="toc-text">2.5 恒等映射与开 MMU（enable_mmu）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-6-%E8%B7%B3%E5%85%A5-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.2.6.</span> <span class="toc-text">2.6 跳入 C 世界</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-7-init-traps-%E4%B8%8E%E9%99%B7%E8%8E%B7%E9%85%8D%E7%BD%AE"><span class="toc-number">1.2.7.</span> <span class="toc-text">2.7 init_traps 与陷获配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-8-%E5%90%8E%E7%BB%AD%E5%88%9D%E5%A7%8B%E5%8C%96%E9%A1%BA%E5%BA%8F%E4%B8%8E%E4%BE%9D%E8%B5%96"><span class="toc-number">1.2.8.</span> <span class="toc-text">2.8 后续初始化顺序与依赖</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%B8%89%E7%AB%A0%EF%BC%9A%E6%9C%80%E5%B0%8F%E9%AA%A8%E6%9E%B6%E7%9A%84%E6%9E%84%E5%BB%BA%E4%B8%8E%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB"><span class="toc-number">1.3.</span> <span class="toc-text">第三章：最小骨架的构建与代码解读</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%9E%84%E5%BB%BA%E4%B8%8E%E8%BF%90%E8%A1%8C"><span class="toc-number">1.3.1.</span> <span class="toc-text">1 构建与运行</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%BB%A3%E7%A0%81%E8%A7%A3%E8%AF%BB"><span class="toc-number">1.3.2.</span> <span class="toc-text">2 代码解读</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-1-%E5%90%AF%E5%8A%A8%E9%93%BE%E8%B7%AF%E6%80%BB%E8%A7%88"><span class="toc-number">1.3.2.1.</span> <span class="toc-text">3.2.1 启动链路总览</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-2-Image-%E5%A4%B4%E4%B8%8E%E5%8A%A0%E8%BD%BD%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.3.2.2.</span> <span class="toc-text">3.2.2 Image 头与加载约定</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-3-EL2-%E6%A3%80%E6%9F%A5%E3%80%81%E6%A0%88%E5%92%8C%E5%90%91%E9%87%8F%E8%A1%A8"><span class="toc-number">1.3.2.3.</span> <span class="toc-text">3.2.3 EL2 检查、栈和向量表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-4-MAIR-EL2%E3%80%81TCR-EL2%E3%80%81SCTLR-EL2"><span class="toc-number">1.3.2.4.</span> <span class="toc-text">3.2.4 MAIR_EL2、TCR_EL2、SCTLR_EL2</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-5-%E6%81%92%E7%AD%89%E6%98%A0%E5%B0%84%E4%B8%8E%E5%BC%80-MMU"><span class="toc-number">1.3.2.5.</span> <span class="toc-text">3.2.5 恒等映射与开 MMU</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-6-%E8%BF%9B%E5%85%A5-C-%E4%B8%96%E7%95%8C"><span class="toc-number">1.3.2.6.</span> <span class="toc-text">3.2.6 进入 C 世界</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-7-%E5%BC%82%E5%B8%B8%E5%90%91%E9%87%8F%E8%A1%A8"><span class="toc-number">1.3.2.7.</span> <span class="toc-text">3.2.7 异常向量表</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-8-main-c%EF%BC%9AC-%E4%B8%96%E7%95%8C%E7%9A%84%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.3.2.8.</span> <span class="toc-text">3.2.8 main.c：C 世界的初始化</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-9-%E5%BD%93%E5%89%8D%E8%BE%B9%E7%95%8C%E4%B8%8E%E4%B8%8B%E4%B8%80%E6%AD%A5"><span class="toc-number">1.3.2.9.</span> <span class="toc-text">3.2.9 当前边界与下一步</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E5%9B%9B%E7%AB%A0%EF%BC%9A%E5%8D%81%E4%B8%AA%E5%B8%B8%E8%A7%81%E9%94%99%E8%AF%AF"><span class="toc-number">1.4.</span> <span class="toc-text">第四章：十个常见错误</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E6%9C%AF%E8%AF%AD%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">1.5.</span> <span class="toc-text">第五章：术语速查表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AC%AC%E5%85%AD%E7%AB%A0%EF%BC%9A%E5%90%8E%E7%BB%AD%E5%AD%A6%E4%B9%A0%E8%B7%AF%E7%BA%BF"><span class="toc-number">1.6.</span> <span class="toc-text">第六章：后续学习路线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%9C%80%E5%B0%8F%E9%AA%A8%E6%9E%B6%E5%AE%8C%E6%95%B4%E4%BB%A3%E7%A0%81"><span class="toc-number">1.7.</span> <span class="toc-text">附录 A：最小骨架完整代码</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#A-1-boot-S"><span class="toc-number">1.7.1.</span> <span class="toc-text">A.1 boot.S</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#A-2-main-c"><span class="toc-number">1.7.2.</span> <span class="toc-text">A.2 main.c</span></a></li></ol></li></ol></li></ol>
+      </div>
+    
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&text=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&is_video=false&description=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界&body=Check out this article: https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html"><i class="fa-solid fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&title=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&name=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://syscall.fun/post/aarch64-type1-hypervisor-getting-started-manual-learn-from-xen-and-write-from-scratch-to-the-zalluw.html&t=AArch64 Type-1 Hypervisor 入门手册：跟着 Xen 学，从零写到 C 世界"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fa-solid fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        
+          <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fa-solid fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fa-solid fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa-solid fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2016-2026
+    scriptk1d
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/about/">About</a></li><!--
+     --><!--
+       --><li><a href="/archives/">Writing</a></li><!--
+     --><!--
+       --><li><a target="_blank" rel="noopener" href="http://github.com/probberechts">Projects</a></li><!--
+     -->
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script>
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script>
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="fa-regular fa-clone"></i>';
+    btn += '</span>';
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Baidu Analytics -->
+
+<!-- Cloudflare Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+</body>
+</html>
